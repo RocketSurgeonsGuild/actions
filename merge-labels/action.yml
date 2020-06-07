@@ -1,0 +1,9 @@
+name: 'Merge Labels'
+description: 'Merges two labeler files together to allow for organization based labels and repo based labels'
+inputs:
+  files:
+    description: 'The files to merge in order'
+    required: true
+runs:
+  using: 'node12'
+  main: 'index.js'

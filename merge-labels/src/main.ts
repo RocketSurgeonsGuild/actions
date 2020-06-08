@@ -24,7 +24,7 @@ async function run(): Promise<void> {
         debug(`writing ${output}`);
         warning(`writing ${resolve(output)}`);
         warning(`writing ${resolve('./' + output)}`);
-        await writeFile$(resolve(output), safeDump(data)).toPromise();
+        await writeFile$(resolve(output), JSON.stringify(safeDump(data))).toPromise();
     } catch (error) {
         setFailed(error.message);
     }

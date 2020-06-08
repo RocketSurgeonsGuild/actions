@@ -10237,7 +10237,7 @@ function run() {
             core_1.debug(`writing ${output}`);
             core_1.warning(`writing ${path_1.resolve(output)}`);
             core_1.warning(`writing ${path_1.resolve('./' + output)}`);
-            yield writeFile$(path_1.resolve(output), js_yaml_1.safeDump(data)).toPromise();
+            yield writeFile$(path_1.resolve(output), JSON.stringify(js_yaml_1.safeDump(data))).toPromise();
         }
         catch (error) {
             core_1.setFailed(error.message);

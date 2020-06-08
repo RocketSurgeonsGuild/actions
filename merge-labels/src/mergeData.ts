@@ -1,4 +1,4 @@
-import { debug, warning } from '@actions/core';
+import { debug } from '@actions/core';
 import { bindNodeCallback } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { readFile } from 'fs';
@@ -18,7 +18,6 @@ export async function mergeData(files: string[]) {
 
     for (const item of files) {
         debug(`reading ${item}`);
-        warning(`reading ${item}`);
         const content = await readFile$(item)
             .pipe(map(z => z.toString()))
             .toPromise();
@@ -29,6 +28,5 @@ export async function mergeData(files: string[]) {
         }
     }
 
-    warning(JSON.stringify(Array.from(result.values())));
     return Array.from(result.values());
 }

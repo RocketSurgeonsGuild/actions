@@ -3117,7 +3117,6 @@ function mergeData(files) {
         const result = new Map();
         for (const item of files) {
             core_1.debug(`reading ${item}`);
-            core_1.warning(`reading ${item}`);
             const content = yield readFile$(item)
                 .pipe(operators_1.map(z => z.toString()))
                 .toPromise();
@@ -3128,7 +3127,6 @@ function mergeData(files) {
                 result.set(dataItem.name, dataItem);
             }
         }
-        core_1.warning(JSON.stringify(Array.from(result.values())));
         return Array.from(result.values());
     });
 }
@@ -10235,8 +10233,6 @@ function run() {
             }
             const data = yield mergeData_1.mergeData(files);
             core_1.debug(`writing ${output}`);
-            core_1.warning(`writing ${path_1.resolve(output)}`);
-            core_1.warning(`writing ${path_1.resolve('./' + output)}`);
             yield writeFile$(path_1.resolve(output), js_yaml_1.safeDump(data)).toPromise();
         }
         catch (error) {

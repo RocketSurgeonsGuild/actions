@@ -1,4 +1,4 @@
-import { debug, setFailed, getInput, warning } from '@actions/core';
+import { debug, setFailed, getInput } from '@actions/core';
 import { create } from '@actions/glob';
 import { safeDump } from 'js-yaml';
 import { writeFile } from 'fs';
@@ -22,8 +22,6 @@ async function run(): Promise<void> {
 
         const data = await mergeData(files);
         debug(`writing ${output}`);
-        warning(`writing ${resolve(output)}`);
-        warning(`writing ${resolve('./' + output)}`);
         await writeFile$(resolve(output), safeDump(data)).toPromise();
     } catch (error) {
         setFailed(error.message);

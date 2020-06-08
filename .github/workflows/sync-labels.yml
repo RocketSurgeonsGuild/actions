@@ -21,7 +21,7 @@ jobs:
           path: .rsg
 
       - name: merge files
-        uses: merge-labels/dist/index.js
+        uses: ./merge-labels/dist/index.js
         with:
           files: '.rsg/.github/labels.yml,.github/labels.yml'
           output: .github/labels.yml

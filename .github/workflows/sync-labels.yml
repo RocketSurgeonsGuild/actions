@@ -5,6 +5,7 @@ on:
       - master
     paths:
       - .github/workflows/sync-labels.yml
+      - merge-labels/**/*.*
       - .github/labels.yml
 
 jobs:

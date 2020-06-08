@@ -10,11 +10,17 @@ const writeFile$ = bindNodeCallback(writeFile);
 
 async function run(): Promise<void> {
     try {
-        const globString: string = getInput('files', { required: true });
+        const globStrings: string[] = getInput('files', { required: true }).split(',');
         const output: string = getInput('output', { required: true });
-        const glob = await create(globString);
 
-        const data = mergeData(await glob.glob());
+        const files = [];
+
+        for (const fileGlob of globStrings) {
+            const glob = await create(fileGlob);
+            files.push(...(await glob.glob()));
+        }
+
+        const data = mergeData(files);
         debug(`writing ${output}`);
         await writeFile$(resolve(output), safeDump(data)).toPromise();
     } catch (error) {

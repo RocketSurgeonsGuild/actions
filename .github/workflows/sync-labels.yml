@@ -21,16 +21,9 @@ jobs:
           path: .rsg
 
       - name: merge files
-        shell: pwsh
-        run: |
-          echo (Get-Content -Raw ".github/labels.yml")
-          echo (Get-Content -Raw ".rsg/.github/labels.yml")
-
-          # Add-Content -Path ".rsg/.github/labels.yml" -Value (Get-Content -Raw ".github/labels.yml")
-          Add-Content -Path ".github/labels.yml" -Value (Get-Content -Raw ".rsg/.github/labels.yml")
-
-          echo (Get-Content -Raw ".github/labels.yml")
-          echo (Get-Content -Raw ".rsg/.github/labels.yml")
+        uses: merge-labels/dist/index.js
+        with:
+          files:
 
       - name: Run Labeler
         if: success()

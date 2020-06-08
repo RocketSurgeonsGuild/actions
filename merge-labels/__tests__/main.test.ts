@@ -14,3 +14,10 @@ test('merges data from parent to child', async () => {
     const question = data.find(x => x.name === ':grey_question: question')!;
     expect(question.color).toBe('cccccc');
 });
+
+test('merges empty files', async () => {
+    const data = await mergeData([join(__dirname, 'fixtures/.github.labels.yml'), join(__dirname, 'fixtures/empty.yml')]);
+
+    const question = data.find(x => x.name === ':grey_question: question')!;
+    expect(question.color).toBe('d876e3');
+});

@@ -1,19 +1,25 @@
-import {debug, setOutput, setFailed, getInput} from '@actions/core';
-import {wait} from './wait';
+import { debug, setFailed, getInput } from '@actions/core';
+import { create } from '@actions/glob';
+import { safeDump } from 'js-yaml';
+import { writeFile } from 'fs';
+import { resolve } from 'path';
+import { mergeData } from './mergeData';
+import { bindNodeCallback } from 'rxjs';
+
+const writeFile$ = bindNodeCallback(writeFile);
 
 async function run(): Promise<void> {
-  try {
-    const ms: string = getInput('milliseconds');
-    debug(`Waiting ${ms} milliseconds ...`);
+    try {
+        const globString: string = getInput('files', { required: true });
+        const output: string = getInput('output', { required: true });
+        const glob = await create(globString);
 
-    debug(new Date().toTimeString());
-    await wait(parseInt(ms, 10));
-    debug(new Date().toTimeString());
-
-    setOutput('time', new Date().toTimeString());
-  } catch (error) {
-    setFailed(error.message);
-  }
+        const data = mergeData(await glob.glob());
+        debug(`writing ${output}`);
+        await writeFile$(resolve(output), safeDump(data)).toPromise();
+    } catch (error) {
+        setFailed(error.message);
+    }
 }
 
 run();

@@ -1,27 +1,17 @@
-import {wait} from '../src/wait';
-import * as process from 'process';
-import * as cp from 'child_process';
-import * as path from 'path';
+import { mergeData } from '../src/mergeData';
+import { join } from 'path';
+import { execSync, ExecSyncOptions } from 'child_process';
 
-test('throws invalid number', async () => {
-  const input = parseInt('foo', 10);
-  await expect(wait(input)).rejects.toThrow('milliseconds not a number');
+test('returns same data if given one file', async () => {
+    const data = await mergeData([join(__dirname, 'fixtures/.github.labels.yml')]);
+
+    const question = data.find(x => x.name === ':grey_question: question')!;
+    expect(question.color).not.toBe('cccccc');
 });
 
-test('wait 500 ms', async () => {
-  const start = new Date();
-  await wait(500);
-  const end = new Date();
-  var delta = Math.abs(end.getTime() - start.getTime());
-  expect(delta).toBeGreaterThan(450);
-});
+test('merges data from parent to child', async () => {
+    const data = await mergeData([join(__dirname, 'fixtures/.github.labels.yml'), join(__dirname, 'fixtures/local.labels.yml')]);
 
-// shows how the runner will run a javascript action with env / stdout protocol
-test('test runs', () => {
-  process.env['INPUT_MILLISECONDS'] = '200';
-  const ip = path.join(__dirname, '..', 'dist', 'index.js');
-  const options: cp.ExecSyncOptions = {
-    env: process.env
-  };
-  console.log(cp.execSync(`node ${ip}`, options).toString());
+    const question = data.find(x => x.name === ':grey_question: question')!;
+    expect(question.color).toBe('cccccc');
 });

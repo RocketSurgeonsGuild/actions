@@ -4,6 +4,9 @@ inputs:
   files:
     description: 'The files to merge in order'
     required: true
+  output:
+    description: 'The output yaml file'
+    required: true
 runs:
   using: 'node12'
   main: 'index.js'

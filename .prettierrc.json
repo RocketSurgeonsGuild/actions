@@ -1,9 +1,8 @@
 {
-    "printWidth": 150,
-    "useTabs": false,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "bracketSpacing": true,
-    "arrowParens": "avoid",
-    "parser": "typescript"
-  }
+  "printWidth": 150,
+  "useTabs": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "bracketSpacing": true,
+  "arrowParens": "avoid"
+}

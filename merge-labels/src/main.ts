@@ -20,7 +20,7 @@ async function run(): Promise<void> {
             files.push(...(await glob.glob()));
         }
 
-        const data = mergeData(files);
+        const data = await mergeData(files);
         debug(`writing ${output}`);
         await writeFile$(resolve(output), safeDump(data)).toPromise();
     } catch (error) {

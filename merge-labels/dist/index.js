@@ -3104,13 +3104,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mergeData = void 0;
 const core_1 = __webpack_require__(470);
@@ -3120,31 +3113,20 @@ const fs_1 = __webpack_require__(747);
 const js_yaml_1 = __webpack_require__(414);
 const readFile$ = rxjs_1.bindNodeCallback(fs_1.readFile);
 function mergeData(files) {
-    var files_1, files_1_1;
-    var e_1, _a;
     return __awaiter(this, void 0, void 0, function* () {
         const result = new Map();
-        try {
-            for (files_1 = __asyncValues(files); files_1_1 = yield files_1.next(), !files_1_1.done;) {
-                const item = files_1_1.value;
-                core_1.debug(`reading ${item}`);
-                const content = yield readFile$(item)
-                    .pipe(operators_1.map(z => z.toString()))
-                    .toPromise();
-                const data = js_yaml_1.safeLoad(content);
-                if (!Array.isArray(data))
-                    continue;
-                for (const dataItem of data) {
-                    result.set(dataItem.name, dataItem);
-                }
+        for (const item of files) {
+            core_1.debug(`reading ${item}`);
+            core_1.warning(`reading ${item}`);
+            const content = yield readFile$(item)
+                .pipe(operators_1.map(z => z.toString()))
+                .toPromise();
+            const data = js_yaml_1.safeLoad(content);
+            if (!Array.isArray(data))
+                continue;
+            for (const dataItem of data) {
+                result.set(dataItem.name, dataItem);
             }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (files_1_1 && !files_1_1.done && (_a = files_1.return)) yield _a.call(files_1);
-            }
-            finally { if (e_1) throw e_1.error; }
         }
         return Array.from(result.values());
     });
@@ -10252,6 +10234,7 @@ function run() {
             }
             const data = yield mergeData_1.mergeData(files);
             core_1.debug(`writing ${output}`);
+            core_1.warning(`writing ${output}`);
             yield writeFile$(path_1.resolve(output), js_yaml_1.safeDump(data)).toPromise();
         }
         catch (error) {

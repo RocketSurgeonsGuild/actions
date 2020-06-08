@@ -1,4 +1,4 @@
-import { debug } from '@actions/core';
+import { debug, warning } from '@actions/core';
 import { bindNodeCallback } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { readFile } from 'fs';
@@ -16,8 +16,9 @@ export interface ILabelItem {
 export async function mergeData(files: string[]) {
     const result = new Map<string, ILabelItem>();
 
-    for await (const item of files) {
+    for (const item of files) {
         debug(`reading ${item}`);
+        warning(`reading ${item}`);
         const content = await readFile$(item)
             .pipe(map(z => z.toString()))
             .toPromise();

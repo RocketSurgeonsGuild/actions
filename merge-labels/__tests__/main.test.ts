@@ -1,6 +1,5 @@
 import { mergeData } from '../src/mergeData';
 import { join } from 'path';
-import { execSync, ExecSyncOptions } from 'child_process';
 
 test('returns same data if given one file', async () => {
     const data = await mergeData([join(__dirname, 'fixtures/.github.labels.yml')]);

@@ -10234,7 +10234,8 @@ function run() {
             }
             const data = yield mergeData_1.mergeData(files);
             core_1.debug(`writing ${output}`);
-            core_1.warning(`writing ${output}`);
+            core_1.warning(`writing ${path_1.resolve(output)}`);
+            core_1.warning(`writing ${path_1.resolve('./' + output)}`);
             yield writeFile$(path_1.resolve(output), js_yaml_1.safeDump(data)).toPromise();
         }
         catch (error) {

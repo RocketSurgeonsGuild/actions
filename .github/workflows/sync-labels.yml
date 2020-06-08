@@ -23,7 +23,8 @@ jobs:
       - name: merge files
         uses: merge-labels/dist/index.js
         with:
-          files:
+          files: '.rsg/.github/labels.yml,.github/labels.yml'
+          output: .github/labels.yml
 
       - name: Run Labeler
         if: success()

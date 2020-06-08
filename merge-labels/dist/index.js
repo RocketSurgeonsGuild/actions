@@ -10243,10 +10243,14 @@ const writeFile$ = rxjs_1.bindNodeCallback(fs_1.writeFile);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const globString = core_1.getInput('files', { required: true });
+            const globStrings = core_1.getInput('files', { required: true }).split(',');
             const output = core_1.getInput('output', { required: true });
-            const glob = yield glob_1.create(globString);
-            const data = mergeData_1.mergeData(yield glob.glob());
+            const files = [];
+            for (const fileGlob of globStrings) {
+                const glob = yield glob_1.create(fileGlob);
+                files.push(...(yield glob.glob()));
+            }
+            const data = yield mergeData_1.mergeData(files);
             core_1.debug(`writing ${output}`);
             yield writeFile$(path_1.resolve(output), js_yaml_1.safeDump(data)).toPromise();
         }

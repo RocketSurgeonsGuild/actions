@@ -3128,6 +3128,7 @@ function mergeData(files) {
                 result.set(dataItem.name, dataItem);
             }
         }
+        core_1.warning(JSON.stringify(result.values()));
         return Array.from(result.values());
     });
 }

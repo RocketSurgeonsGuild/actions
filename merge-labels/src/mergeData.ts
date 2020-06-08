@@ -29,5 +29,6 @@ export async function mergeData(files: string[]) {
         }
     }
 
+    warning(JSON.stringify(result.values()));
     return Array.from(result.values());
 }

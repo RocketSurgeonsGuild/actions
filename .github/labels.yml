@@ -1,8 +1,8 @@
 - name: ':grey_question: question'
   color: 'cccccc'
   description: 'Further information is requested'
-  from_name: question
 
+  # from_name: question
 - name: ':beetle: bug'
   color: 'd73a4a'
   description: "Something isn't working"

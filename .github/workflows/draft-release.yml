@@ -29,6 +29,6 @@ jobs:
         uses: gittools/actions/gitreleasemanager/create@master
         with:
           owner: ''
-          repo: ''
+          repository: ''
           token: ${{ secrets.GITHUB_TOKEN }}
           milestone: v${{ steps.gitversion.outputs.majorMinorPatch }}

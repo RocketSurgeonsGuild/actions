@@ -95,13 +95,6 @@ export async function updatePullRequestLabel(
     const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
 
     if (hasLabel) return;
-    if (mergeLabel) {
-        await github.issues.removeLabel({
-            ...request,
-            issue_number: pr.number,
-            name: mergeLabel.name,
-        });
-    }
 
     await github.issues.addLabels({
         ...request,

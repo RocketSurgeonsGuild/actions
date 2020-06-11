@@ -7,6 +7,8 @@ on:
       - .github/workflows/sync-labels.yml
       - merge-labels/**/*.*
       - .github/labels.yml
+  schedule:
+    - cron: '* 23 * * *'
 
 jobs:
   sync-labels:

@@ -1,0 +1,55 @@
+name-template: 'v$NEXT_PATCH_VERSION 🏳‍🌈'
+tag-template: 'v$NEXT_PATCH_VERSION'
+categories:
+  - title: '💥 Breaking Changes'
+    labels:
+      - ':boom: breaking change'
+  - title: '🚀 Features'
+    labels:
+      - ':fire: enhancement'
+      - ':rocket: feature'
+  - title: '🐞 Bug Fixes'
+    labels:
+      - ':beetle: bug'
+  - title: '📦 Dependencies'
+    labels:
+      - ':package: dependencies'
+  - title: '📘 Documentation'
+    labels:
+      - ':blue_book: documentation'
+  - title: '✨ Maintenance 🔨'
+    labels:
+      - ':hammer: chore'
+      - ':sparkles: mysterious'
+  - title: '🎉🎈🎇 New Contributors! 🎇🎈🎉'
+    labels:
+      - ':raised_hand: good first issue'
+      - ':raised_hand: help wanted'
+
+exclude-labels:
+  - ':family: duplicate'
+  - ':grey_question: question'
+  - ':lock: wontfix'
+  - ':shipit: merge'
+  - ':x: invalid'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+version-resolver:
+  major:
+    labels:
+      - 'major'
+  minor:
+    labels:
+      - 'minor'
+  patch:
+    labels:
+      - 'patch'
+  default: patch
+template: |
+  # Changes
+
+  $CHANGES
+
+  # Contributors!
+
+  $CONTRIBUTORS

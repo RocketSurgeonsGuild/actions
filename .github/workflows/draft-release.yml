@@ -6,58 +6,35 @@ on:
       - master
 
 jobs:
-  build:
-    name: 'Release'
-    runs-on: ubuntu-18.04
+  draft_release:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Fetch all history for all tags and branches
         run: git fetch --prune --unshallow
+      - name: nuget source
+        shell: pwsh
+        run: dotnet nuget update source RocketSurgeonsGuild -u 'anything' -p ${{ secrets.RSG_PACKAGES_TOKEN }} --store-password-in-clear-text
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.3
+        uses: gittools/actions/gitversion/setup@master
         with:
           versionSpec: '5.x'
       - name: Use GitVersion
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.3
-      - name: 'Generate changelog'
-        id: generate-changelog
-        uses: heinrichreimer/action-github-changelog-generator@v2
-        # with:
-        # issues: 'true'
-        # pullRequests: 'true'
-        # filterByMilestone: 'true'
-        # author: 'true'
-        # unreleased: 'true'
-        # unreleasedLabel: 'true'
-        # excludeLabels: ':family: duplicate,:grey_question: question,:lock: wontfix,:shipit: merge,:x: invalid'
-        # breakingLabel: '💥 Breaking Changes 💥'
-        # breakingLabels: ':boom: breaking change'
-        # enhancementLabel: '🚀 Features 🚀'
-        # enhancementLabels: ':fire: enhancement,:rocket: feature'
-        # bugsLabel: '🐞 Bug Fixes 🐞'
-        # bugLabels: ':beetle: bug'
-        # deprecatedLabel: '🚧 Deprecated 🚧'
-        # deprecatedLabels: ':construction: deprecated'
-        # removedLabel: '🗑 Removed 🗑'
-        # removedLabels: ':wastebasket: removed'
-        # securityLabel: '🗝 Security 🗝'
-        # securityLabels: ':old_key: security'
-        # issuesLabel: '📋 Closed Issues 📋'
-        # prLabel: '🗃 Pull Requests 🗃'
-        # futureRelease: 'true'
-        # releaseBranch: 'true'
-        # onlyLastTag: 'true'
-        # stripHeaders: 'true'
-        # stripGeneratorNotice: 'true'
-      - name: 'Create GitHub release'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        uses: gittools/actions/gitversion/execute@master
+      - name: Install GitReleaseManager
+        uses: gittools/actions/gitreleasemanager/setup@master
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: ${{ steps.generate-changelog.outputs.changelog }}
-          draft: true
-          prerelease: false
+          versionSpec: '0.11.x'
+      - name: Use GitReleaseManager
+        id: release
+        uses: gittools/actions/gitreleasemanager/execute@master
+      - name: Use GitReleaseManager
+        id: release
+        uses: gittools/actions/gitreleasemanager/create@master
+        with:
+          owner: ''
+          repo: ''
+          token: ${{ secrets.GITHUB_TOKEN }}
+          milestone: v${{ steps.gitversion.outputs.majorMinorPatch }}

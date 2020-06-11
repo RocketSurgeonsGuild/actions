@@ -63,34 +63,20 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
 export function updatePullRequestMilestone(
     github: GitHub,
     request: { owner: string; repo: string },
-    pr: {
-        id: number;
-        title: string;
-        milestone?: {
-            title: string;
-        };
-    },
+    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
 ) {
     const milestone = getVersionMilestones(github, request).pipe(map(z => z[0]));
 
     return milestone.pipe(
         mergeMap(milestone => {
-            console.log(`checking milestone for #${pr.id} - ${pr.title}`);
+            console.log(`checking milestone for #${pr.number} - ${pr.title}`);
             if (milestone && (!pr.milestone || (pr.milestone && pr.milestone.title !== milestone.title))) {
                 console.log(`need to update milestone on ${pr.title} from ${pr.milestone?.title ?? 'nothing'} to ${milestone.title}`);
                 return from(
                     github.issues.update({
                         ...request,
                         milestone: milestone.number,
-                        issue_number: pr.id,
-                    }),
-                ).pipe(mergeMap(() => empty()));
-            } else if (milestone && !pr.milestone) {
-                return from(
-                    github.issues.update({
-                        ...request,
-                        milestone: milestone.number,
-                        issue_number: pr.id,
+                        issue_number: pr.number,
                     }),
                 ).pipe(mergeMap(() => empty()));
             }

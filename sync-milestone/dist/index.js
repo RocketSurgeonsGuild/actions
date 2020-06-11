@@ -6811,13 +6811,10 @@ function updatePullRequestMilestone(github, request, pr) {
     const milestone = getVersionMilestones(github, request).pipe(operators_1.map(z => z[0]));
     return milestone.pipe(operators_1.mergeMap(milestone => {
         var _a, _b;
-        console.log(`checking milestone for #${pr.id} - ${pr.title}`);
+        console.log(`checking milestone for #${pr.number} - ${pr.title}`);
         if (milestone && (!pr.milestone || (pr.milestone && pr.milestone.title !== milestone.title))) {
             console.log(`need to update milestone on ${pr.title} from ${(_b = (_a = pr.milestone) === null || _a === void 0 ? void 0 : _a.title) !== null && _b !== void 0 ? _b : 'nothing'} to ${milestone.title}`);
-            return rxjs_1.from(github.issues.update(Object.assign(Object.assign({}, request), { milestone: milestone.number, issue_number: pr.id }))).pipe(operators_1.mergeMap(() => rxjs_1.empty()));
-        }
-        else if (milestone && !pr.milestone) {
-            return rxjs_1.from(github.issues.update(Object.assign(Object.assign({}, request), { milestone: milestone.number, issue_number: pr.id }))).pipe(operators_1.mergeMap(() => rxjs_1.empty()));
+            return rxjs_1.from(github.issues.update(Object.assign(Object.assign({}, request), { milestone: milestone.number, issue_number: pr.number }))).pipe(operators_1.mergeMap(() => rxjs_1.empty()));
         }
         return rxjs_1.empty();
     }));

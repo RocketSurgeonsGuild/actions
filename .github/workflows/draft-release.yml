@@ -75,7 +75,6 @@ jobs:
         uses: infamous-riddles/branch-guardian@v1
         with:
           PERSONAL-ACCESS-TOKEN: ${{ secrets.RSG_BOT_TOKEN }}
-          REQUIRED-STATUS-CHECKS: ''
           INCLUDE-ADMINISTRATORS: false
           BASE-BRANCH-PATTERN: '^master$'
 

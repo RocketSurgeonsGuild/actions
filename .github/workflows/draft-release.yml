@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - '**/*.md'
 jobs:
   milestone:
     runs-on: ubuntu-latest
@@ -75,6 +77,7 @@ jobs:
           git config --local user.name "rsg-bot"
           git add CHANGELOG.md
           git commit -m "Add changes"
+          git push https://rsg-bot:${{ secrets.RSG_BOT_TOKEN }}@github.com/$GITHUB_REPOSITORY.git master:master
 
       - name: Push changes
         uses: ad-m/github-push-action@master

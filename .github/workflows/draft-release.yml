@@ -12,36 +12,45 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Fetch all history for all tags and branches
+        run: git fetch --prune --unshallow
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.3
+        with:
+          versionSpec: '5.x'
+      - name: Use GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.3
       - name: 'Generate changelog'
         id: generate-changelog
         uses: heinrichreimer/action-github-changelog-generator@v2
-        with:
-          issues: 'true'
-          pullRequests: 'true'
-          filterByMilestone: 'true'
-          author: 'true'
-          unreleased: 'true'
-          unreleasedLabel: 'true'
-          excludeLabels: ':family: duplicate,:grey_question: question,:lock: wontfix,:shipit: merge,:x: invalid'
-          breakingLabel: '💥 Breaking Changes 💥'
-          breakingLabels: ':boom: breaking change'
-          enhancementLabel: '🚀 Features 🚀'
-          enhancementLabels: ':fire: enhancement,:rocket: feature'
-          bugsLabel: '🐞 Bug Fixes 🐞'
-          bugLabels: ':beetle: bug'
-          deprecatedLabel: '🚧 Deprecated 🚧'
-          deprecatedLabels: ':construction: deprecated'
-          removedLabel: '🗑 Removed 🗑'
-          removedLabels: ':wastebasket: removed'
-          securityLabel: '🗝 Security 🗝'
-          securityLabels: ':old_key: security'
-          issuesLabel: '📋 Closed Issues 📋'
-          prLabel: '🗃 Pull Requests 🗃'
-          futureRelease: 'true'
-          releaseBranch: 'true'
-          onlyLastTag: 'true'
-          stripHeaders: 'true'
-          stripGeneratorNotice: 'true'
+        # with:
+        # issues: 'true'
+        # pullRequests: 'true'
+        # filterByMilestone: 'true'
+        # author: 'true'
+        # unreleased: 'true'
+        # unreleasedLabel: 'true'
+        # excludeLabels: ':family: duplicate,:grey_question: question,:lock: wontfix,:shipit: merge,:x: invalid'
+        # breakingLabel: '💥 Breaking Changes 💥'
+        # breakingLabels: ':boom: breaking change'
+        # enhancementLabel: '🚀 Features 🚀'
+        # enhancementLabels: ':fire: enhancement,:rocket: feature'
+        # bugsLabel: '🐞 Bug Fixes 🐞'
+        # bugLabels: ':beetle: bug'
+        # deprecatedLabel: '🚧 Deprecated 🚧'
+        # deprecatedLabels: ':construction: deprecated'
+        # removedLabel: '🗑 Removed 🗑'
+        # removedLabels: ':wastebasket: removed'
+        # securityLabel: '🗝 Security 🗝'
+        # securityLabels: ':old_key: security'
+        # issuesLabel: '📋 Closed Issues 📋'
+        # prLabel: '🗃 Pull Requests 🗃'
+        # futureRelease: 'true'
+        # releaseBranch: 'true'
+        # onlyLastTag: 'true'
+        # stripHeaders: 'true'
+        # stripGeneratorNotice: 'true'
       - name: 'Create GitHub release'
         uses: actions/create-release@v1
         env:

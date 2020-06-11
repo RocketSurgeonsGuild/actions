@@ -110,7 +110,7 @@ function getTagVersions(github: GitHub, request: { owner: string; repo: string }
 }
 
 function getVersionMilestones(github: GitHub, request: { owner: string; repo: string }) {
-    return rxifyRequest(github, github.issues.listMilestonesForRepo, {
+    return rxifyRequest(github, github.issues.listMilestones, {
         ...request,
         state: 'all',
     }).pipe(

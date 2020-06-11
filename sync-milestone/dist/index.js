@@ -6827,7 +6827,7 @@ function getTagVersions(github, request) {
     return rxifyRequest(github, github.repos.listTags, request).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.name) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(versions => versions.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 9)));
 }
 function getVersionMilestones(github, request) {
-    return rxifyRequest(github, github.issues.listMilestonesForRepo, Object.assign(Object.assign({}, request), { state: 'all' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 10)));
+    return rxifyRequest(github, github.issues.listMilestones, Object.assign(Object.assign({}, request), { state: 'all' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 10)));
 }
 function getPullRequestsBetween(github, request) {
     const { owner, repo } = request;

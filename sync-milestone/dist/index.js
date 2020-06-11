@@ -6825,22 +6825,19 @@ function rxifyRequest(github, method, request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete request.page;
     return new rxjs_1.Observable(subscriber => {
-        const controller = new AbortController();
-        rxjs_1.from(method(Object.assign(Object.assign({}, request), { request: { signal: controller.signal } })))
+        return rxjs_1.from(method(Object.assign({}, request)))
             .pipe(operators_1.expand(({ headers }) => {
             if (headers.link) {
                 const next = getLink(headers.link, 'next');
                 if (next) {
                     return rxjs_1.from(github.request({
                         url: next,
-                        request: { signal: controller.signal },
                     }));
                 }
             }
             return rxjs_1.empty();
         }), operators_1.mergeMap(results => (Array.isArray(results.data) ? rxjs_1.from(results.data) : rxjs_1.of(results.data))))
             .subscribe(subscriber);
-        return () => controller.abort();
     });
 }
 function getLink(value, name) {

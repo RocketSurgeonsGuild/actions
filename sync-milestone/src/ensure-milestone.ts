@@ -128,8 +128,7 @@ function rxifyRequest<T, R>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (request as any).page;
     return new Observable<ValueOf<R>>(subscriber => {
-        const controller = new AbortController();
-        from(method({ ...request, request: { signal: controller.signal } }))
+        return from(method({ ...request }))
             .pipe(
                 expand(({ headers }) => {
                     if (headers.link) {
@@ -138,7 +137,6 @@ function rxifyRequest<T, R>(
                             return from(
                                 github.request({
                                     url: next,
-                                    request: { signal: controller.signal },
                                 }),
                             );
                         }
@@ -148,7 +146,6 @@ function rxifyRequest<T, R>(
                 mergeMap(results => (Array.isArray(results.data) ? from(results.data) : of(results.data)) as Observable<ValueOf<R>>),
             )
             .subscribe(subscriber);
-        return () => controller.abort();
     });
 }
 

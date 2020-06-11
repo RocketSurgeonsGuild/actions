@@ -12,6 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: sync milestones
-        uses: ./sync-mileestone/
+        uses: ./sync-milestone/
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}

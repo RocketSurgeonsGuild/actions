@@ -6772,8 +6772,17 @@ exports.zipAll = zipAll;
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePullRequestMilestone = exports.ensureMilestonesAreCorrect = void 0;
+exports.updatePullRequestLabel = exports.updatePullRequestMilestone = exports.ensureMilestonesAreCorrect = void 0;
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const rxjs_1 = __webpack_require__(931);
 const operators_1 = __webpack_require__(43);
@@ -6820,6 +6829,19 @@ function updatePullRequestMilestone(github, request, pr) {
     }));
 }
 exports.updatePullRequestMilestone = updatePullRequestMilestone;
+function updatePullRequestLabel(github, request, pr, defaultLabel) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const mergeLabel = pr.labels.find(z => !z.name.includes('merge'));
+        const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
+        if (hasLabel)
+            return;
+        if (mergeLabel) {
+            yield github.issues.removeLabel(Object.assign(Object.assign({}, request), { issue_number: pr.number, name: mergeLabel.name }));
+        }
+        yield github.issues.addLabels(Object.assign(Object.assign({}, request), { issue_number: pr.number, labels: [defaultLabel] }));
+    });
+}
+exports.updatePullRequestLabel = updatePullRequestLabel;
 function getTagVersions(github, request) {
     return rxifyRequest(github, github.repos.listTags, request).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.name) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(versions => versions.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 9)));
 }
@@ -18468,10 +18490,14 @@ function run() {
         try {
             const { payload, repo } = github_1.context;
             const githubToken = core_1.getInput('github-token', { required: true });
+            const defaultLabel = core_1.getInput('default-label', { required: true });
             const github = github_1.getOctokit(githubToken, {});
             if (payload.pull_request) {
                 const pr = yield github.pulls.get(Object.assign(Object.assign({}, repo), { pull_number: payload.pull_request.number }));
                 yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
+                if (payload.action === 'closed') {
+                    yield ensure_milestone_1.updatePullRequestLabel(github, repo, pr.data, defaultLabel);
+                }
             }
             else {
                 yield ensure_milestone_1.ensureMilestonesAreCorrect(github, repo).toPromise();

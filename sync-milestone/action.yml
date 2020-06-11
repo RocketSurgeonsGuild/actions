@@ -1,6 +1,9 @@
 name: 'Sync Milestone'
 description: 'Promotes any issues from a milestone that has not yet been released, to the latest milestone'
 inputs:
+  default-label:
+    description: 'the default label to use for unlabeled pull requests'
+    required: true
   github-token:
     description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
     required: true

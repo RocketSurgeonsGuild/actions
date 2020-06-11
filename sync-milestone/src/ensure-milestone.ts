@@ -85,6 +85,31 @@ export function updatePullRequestMilestone(
     );
 }
 
+export async function updatePullRequestLabel(
+    github: GitHub,
+    request: { owner: string; repo: string },
+    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
+    defaultLabel: string,
+) {
+    const mergeLabel = pr.labels.find(z => !z.name.includes('merge'));
+    const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
+
+    if (hasLabel) return;
+    if (mergeLabel) {
+        await github.issues.removeLabel({
+            ...request,
+            issue_number: pr.number,
+            name: mergeLabel.name,
+        });
+    }
+
+    await github.issues.addLabels({
+        ...request,
+        issue_number: pr.number,
+        labels: [defaultLabel],
+    });
+}
+
 function getTagVersions(github: GitHub, request: { owner: string; repo: string }) {
     return rxifyRequest(github, github.repos.listTags, request).pipe(
         map(x => ({ ...x, semver: parse(x.name)! })),

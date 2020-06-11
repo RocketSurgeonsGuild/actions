@@ -1,14 +1,8 @@
-name: Sync Milestones
-on:
-  push:
-    branches:
-      - master
-  pull_request:
-    types:
-      - closed
+name: Update Milestone
+on: [pull_request]
 
 jobs:
-  sync-milestones:
+  update-pr-milestone:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

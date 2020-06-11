@@ -60,13 +60,52 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
     );
 }
 
+export function updatePullRequestMilestone(
+    github: GitHub,
+    request: { owner: string; repo: string },
+    pr: {
+        id: number;
+        title: string;
+        milestone?: {
+            title: string;
+        };
+    },
+) {
+    const milestone = getVersionMilestones(github, request).pipe(map(z => z[0]));
+
+    return milestone.pipe(
+        mergeMap(milestone => {
+            console.log(`checking milestone for #${pr.id} - ${pr.title}`);
+            if (milestone && (!pr.milestone || (pr.milestone && pr.milestone.title !== milestone.title))) {
+                console.log(`need to update milestone on ${pr.title} from ${pr.milestone?.title ?? 'nothing'} to ${milestone.title}`);
+                return from(
+                    github.issues.update({
+                        ...request,
+                        milestone: milestone.number,
+                        issue_number: pr.id,
+                    }),
+                ).pipe(mergeMap(() => empty()));
+            } else if (milestone && !pr.milestone) {
+                return from(
+                    github.issues.update({
+                        ...request,
+                        milestone: milestone.number,
+                        issue_number: pr.id,
+                    }),
+                ).pipe(mergeMap(() => empty()));
+            }
+            return empty();
+        }),
+    );
+}
+
 function getTagVersions(github: GitHub, request: { owner: string; repo: string }) {
     return rxifyRequest(github, github.repos.listTags, request).pipe(
         map(x => ({ ...x, semver: parse(x.name)! })),
         filter(z => z.semver != null),
         toArray(),
         map(versions => versions.sort((a, b) => rcompare(a.semver, b.semver))),
-        map(z => slice(z, 0, 2)),
+        map(z => slice(z, 0, 9)),
     );
 }
 
@@ -79,7 +118,7 @@ function getVersionMilestones(github: GitHub, request: { owner: string; repo: st
         filter(z => z.semver != null),
         toArray(),
         map(milestones => milestones.sort((a, b) => rcompare(a.semver, b.semver))),
-        map(z => slice(z, 0, 3)),
+        map(z => slice(z, 0, 10)),
     );
 }
 

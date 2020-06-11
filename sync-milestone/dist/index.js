@@ -6773,7 +6773,7 @@ exports.zipAll = zipAll;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ensureMilestonesAreCorrect = void 0;
+exports.updatePullRequestMilestone = exports.ensureMilestonesAreCorrect = void 0;
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const rxjs_1 = __webpack_require__(931);
 const operators_1 = __webpack_require__(43);
@@ -6807,11 +6807,27 @@ function ensureMilestonesAreCorrect(github, request) {
     }));
 }
 exports.ensureMilestonesAreCorrect = ensureMilestonesAreCorrect;
+function updatePullRequestMilestone(github, request, pr) {
+    const milestone = getVersionMilestones(github, request).pipe(operators_1.map(z => z[0]));
+    return milestone.pipe(operators_1.mergeMap(milestone => {
+        var _a, _b;
+        console.log(`checking milestone for #${pr.id} - ${pr.title}`);
+        if (milestone && (!pr.milestone || (pr.milestone && pr.milestone.title !== milestone.title))) {
+            console.log(`need to update milestone on ${pr.title} from ${(_b = (_a = pr.milestone) === null || _a === void 0 ? void 0 : _a.title) !== null && _b !== void 0 ? _b : 'nothing'} to ${milestone.title}`);
+            return rxjs_1.from(github.issues.update(Object.assign(Object.assign({}, request), { milestone: milestone.number, issue_number: pr.id }))).pipe(operators_1.mergeMap(() => rxjs_1.empty()));
+        }
+        else if (milestone && !pr.milestone) {
+            return rxjs_1.from(github.issues.update(Object.assign(Object.assign({}, request), { milestone: milestone.number, issue_number: pr.id }))).pipe(operators_1.mergeMap(() => rxjs_1.empty()));
+        }
+        return rxjs_1.empty();
+    }));
+}
+exports.updatePullRequestMilestone = updatePullRequestMilestone;
 function getTagVersions(github, request) {
-    return rxifyRequest(github, github.repos.listTags, request).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.name) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(versions => versions.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 2)));
+    return rxifyRequest(github, github.repos.listTags, request).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.name) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(versions => versions.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 9)));
 }
 function getVersionMilestones(github, request) {
-    return rxifyRequest(github, github.issues.listMilestonesForRepo, Object.assign(Object.assign({}, request), { state: 'all' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 3)));
+    return rxifyRequest(github, github.issues.listMilestonesForRepo, Object.assign(Object.assign({}, request), { state: 'all' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_es_1.slice(z, 0, 10)));
 }
 function getPullRequestsBetween(github, request) {
     const { owner, repo } = request;
@@ -18453,11 +18469,16 @@ const ensure_milestone_1 = __webpack_require__(328);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const { payload, repo } = github_1.context;
             const githubToken = core_1.getInput('github-token', { required: true });
             const github = github_1.getOctokit(githubToken, {});
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
-            yield ensure_milestone_1.ensureMilestonesAreCorrect(github, { owner, repo }).toPromise();
+            if (payload.pull_request) {
+                const pr = yield github.pulls.get(Object.assign(Object.assign({}, repo), { pull_number: payload.pull_request.number }));
+                yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
+            }
+            else {
+                yield ensure_milestone_1.ensureMilestonesAreCorrect(github, repo).toPromise();
+            }
         }
         catch (error) {
             core_1.setFailed(error.message);

@@ -1,17 +1,22 @@
 import { setFailed, getInput } from '@actions/core';
-import { getOctokit } from '@actions/github';
-import { ensureMilestonesAreCorrect } from './ensure-milestone';
+import { getOctokit, context } from '@actions/github';
+import { ensureMilestonesAreCorrect, updatePullRequestMilestone } from './ensure-milestone';
 
 async function run(): Promise<void> {
     try {
+        const { payload, repo } = context;
         const githubToken: string = getInput('github-token', { required: true });
-
         const github = getOctokit(githubToken, {});
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const [owner, repo] = process.env.GITHUB_REPOSITORY!.split('/') as [string, string];
-
-        await ensureMilestonesAreCorrect(github, { owner, repo }).toPromise();
+        if (payload.pull_request) {
+            const pr = await github.pulls.get({
+                ...repo,
+                pull_number: payload.pull_request.number,
+            });
+            await updatePullRequestMilestone(github, repo, pr.data).toPromise();
+        } else {
+            await ensureMilestonesAreCorrect(github, repo).toPromise();
+        }
     } catch (error) {
         setFailed(error.message);
     }

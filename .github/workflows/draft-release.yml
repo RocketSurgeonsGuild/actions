@@ -2,7 +2,8 @@ name: Draft Release
 
 on:
   push:
-    - master
+    branches:
+      - master
 
 jobs:
   build:

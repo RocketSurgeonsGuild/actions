@@ -71,6 +71,8 @@ jobs:
 
       - name: Commit files
         run: |
+          git config --local user.email "rsg-bot@github.com"
+          git config --local user.name "rsg-bot"
           git add CHANGELOG.md
           git commit -m "Add changes"
 

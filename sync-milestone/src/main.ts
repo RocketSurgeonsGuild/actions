@@ -1,11 +1,12 @@
 import { setFailed, getInput } from '@actions/core';
 import { getOctokit, context } from '@actions/github';
-import { ensureMilestonesAreCorrect, updatePullRequestMilestone } from './ensure-milestone';
+import { ensureMilestonesAreCorrect, updatePullRequestMilestone, updatePullRequestLabel } from './ensure-milestone';
 
 async function run(): Promise<void> {
     try {
         const { payload, repo } = context;
         const githubToken: string = getInput('github-token', { required: true });
+        const defaultLabel: string = getInput('default-label', { required: true });
         const github = getOctokit(githubToken, {});
 
         if (payload.pull_request) {
@@ -14,6 +15,10 @@ async function run(): Promise<void> {
                 pull_number: payload.pull_request.number,
             });
             await updatePullRequestMilestone(github, repo, pr.data).toPromise();
+
+            if (payload.action === 'closed') {
+                await updatePullRequestLabel(github, repo, pr.data, defaultLabel);
+            }
         } else {
             await ensureMilestonesAreCorrect(github, repo).toPromise();
         }

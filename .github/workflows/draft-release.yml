@@ -28,7 +28,6 @@ jobs:
         with:
           versionSpec: '0.11.x'
       - name: Use GitReleaseManager
-        id: release
         uses: gittools/actions/gitreleasemanager/execute@master
       - name: Use GitReleaseManager
         id: release

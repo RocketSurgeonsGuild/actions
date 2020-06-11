@@ -71,12 +71,10 @@ jobs:
 
       - name: Commit files
         run: |
-          git config --local user.email "rsg-bot@github.com"
-          git config --local user.name "rsg-bot"
           git add CHANGELOG.md
           git commit -m "Add changes"
 
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.RSG_BOT_TOKEN }}

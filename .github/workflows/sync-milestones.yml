@@ -1,0 +1,17 @@
+name: Sync Milestones
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  sync-milestones:
+    runs-on: ubuntu-latest
+    steps:
+      - name: sync milestones
+        uses: ./sync-mileestone/
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

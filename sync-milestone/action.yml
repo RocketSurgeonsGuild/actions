@@ -1,0 +1,9 @@
+name: 'Sync Milestone'
+description: 'Promotes any issues from a milestone that has not yet been released, to the latest milestone'
+inputs:
+  github-token:
+    description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
+    required: true
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

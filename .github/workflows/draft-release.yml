@@ -71,15 +71,30 @@ jobs:
             --token "${{ secrets.GITHUB_TOKEN }}" `
             -f CHANGELOG.md
 
+      - name: Branch Guardian - Disable Status Checks
+        uses: infamous-riddles/branch-guardian@v1
+        with:
+          PERSONAL-ACCESS-TOKEN: ${{ secrets.RSG_BOT_TOKEN }}
+          REQUIRED-STATUS-CHECKS: 'build'
+          INCLUDE-ADMINISTRATORS: false
+          BASE-BRANCH-PATTERN: '^master$'
+
       - name: Commit files
         run: |
           git config --local user.email "rsg-bot@github.com"
           git config --local user.name "rsg-bot"
           git add CHANGELOG.md
           git commit -m "Add changes"
-          git push https://rsg-bot:${{ secrets.RSG_BOT_TOKEN }}@github.com/$GITHUB_REPOSITORY.git master:master
 
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.RSG_BOT_TOKEN }}
+
+      - name: Branch Guardian - Enable Status Checks
+        uses: infamous-riddles/branch-guardian@v1
+        with:
+          PERSONAL-ACCESS-TOKEN: ${{ secrets.RSG_BOT_TOKEN }}
+          REQUIRED-STATUS-CHECKS: 'build'
+          INCLUDE-ADMINISTRATORS: false
+          BASE-BRANCH-PATTERN: '^master$'

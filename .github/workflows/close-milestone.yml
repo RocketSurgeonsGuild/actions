@@ -40,7 +40,7 @@ jobs:
         uses: ./sync-milestone/
         with:
           default-label: ':sparkles: mysterious'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.RSG_BOT_TOKEN }}
 
       - name: Get Repo and Owner
         shell: pwsh

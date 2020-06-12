@@ -8,7 +8,7 @@ on:
       - merge-labels/**/*.*
       - .github/labels.yml
   schedule:
-    - cron: '* 23 * * *'
+    - cron: '0 0 * * *'
 
 jobs:
   sync-labels:

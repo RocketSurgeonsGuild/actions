@@ -52,10 +52,6 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
                             }),
                         ),
                     ),
-                    tap(
-                        x => console.log(x),
-                        x => console.error(x),
-                    ),
                     toArray(),
                 )
                 .toPromise();

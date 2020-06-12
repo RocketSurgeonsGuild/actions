@@ -20,6 +20,7 @@ async function run(): Promise<void> {
                 await updatePullRequestLabel(github, repo, pr.data, defaultLabel);
             }
         } else {
+            console.log('ensuring milestones are updated');
             await ensureMilestonesAreCorrect(github, repo).toPromise();
         }
     } catch (error) {

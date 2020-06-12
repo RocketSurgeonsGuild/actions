@@ -22,6 +22,11 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
 
             const currentPendingMilestone = milestoneRange[0];
             const remainingOpenMilestones = milestoneRange.slice(1);
+            console.log('Current Milestone', currentPendingMilestone.title);
+            console.log(
+                'Old Milestones',
+                remainingOpenMilestones.map(z => z.title),
+            );
             if (!remainingOpenMilestones.length) return empty();
 
             const issues = from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0)).pipe(

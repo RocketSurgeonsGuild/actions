@@ -29,47 +29,51 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
             );
             if (!remainingOpenMilestones.length) return empty();
 
-            const issues = from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0)).pipe(
-                mergeMap(milestone =>
-                    rxifyRequest(github, github.issues.listForRepo, {
-                        ...request,
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        milestone: milestone.number as any,
-                        state: 'all',
-                    }).pipe(map(issue => ({ issue, milestone }))),
-                ),
-                tap(({ issue, milestone }) => {
-                    console.log(`Moving issue '${issue.title}' from ${milestone.title} to ${currentPendingMilestone.title}`);
-                }),
-                // eslint-disable-next-line @typescript-eslint/promise-function-async
-                mergeMap(({ issue }) =>
-                    from(
-                        issue.pull_request
-                            ? github.pulls.update({
-                                  ...request,
-                                  pull_number: issue.number,
-                                  milestone: currentPendingMilestone.number,
-                              })
-                            : github.issues.update({
-                                  ...request,
-                                  issue_number: issue.number,
-                                  milestone: currentPendingMilestone.number,
-                              }),
-                    ),
-                ),
-                toArray(),
-            );
-
-            const deleteMilestones = from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0)).pipe(
-                mergeMap(milestone => {
-                    return from(
-                        github.issues.deleteMilestone({
+            const issues = from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0))
+                .pipe(
+                    mergeMap(milestone =>
+                        rxifyRequest(github, github.issues.listForRepo, {
                             ...request,
-                            milestone_number: milestone.number,
-                        }),
-                    );
-                }),
-            );
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            milestone: milestone.number as any,
+                            state: 'all',
+                        }).pipe(map(issue => ({ issue, milestone }))),
+                    ),
+                    tap(({ issue, milestone }) => {
+                        console.log(`Moving issue '${issue.title}' from ${milestone.title} to ${currentPendingMilestone.title}`);
+                    }),
+                    // eslint-disable-next-line @typescript-eslint/promise-function-async
+                    mergeMap(({ issue }) =>
+                        from(
+                            issue.pull_request
+                                ? github.pulls.update({
+                                      ...request,
+                                      pull_number: issue.number,
+                                      milestone: currentPendingMilestone.number,
+                                  })
+                                : github.issues.update({
+                                      ...request,
+                                      issue_number: issue.number,
+                                      milestone: currentPendingMilestone.number,
+                                  }),
+                        ),
+                    ),
+                    toArray(),
+                )
+                .toPromise();
+
+            const deleteMilestones = from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0))
+                .pipe(
+                    mergeMap(milestone => {
+                        return from(
+                            github.issues.deleteMilestone({
+                                ...request,
+                                milestone_number: milestone.number,
+                            }),
+                        );
+                    }),
+                )
+                .toPromise();
 
             return forkJoin(deleteMilestones, issues).pipe(map(z => z[1]));
         }),
@@ -124,7 +128,7 @@ export async function updatePullRequestLabel(
 function getVersionMilestones(github: GitHub, request: { owner: string; repo: string }) {
     return rxifyRequest(github, github.issues.listMilestones, {
         ...request,
-        state: 'all',
+        state: 'open',
     }).pipe(
         map(x => ({ ...x, semver: parse(x.title)! })),
         filter(z => z.semver != null),

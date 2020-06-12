@@ -7,10 +7,17 @@ pull_request_rules:
       merge:
         method: squash
         strict: smart
-  - name: automatic merge when GitHub branch protection passes and delete head branch after merge
+  - name: automatic merge when GitHub branch protection passes
     conditions:
       - merged
       - 'label=:shipit: merge'
+    actions:
+      label:
+        remove:
+          - ':shipit: merge'
+  - name: delete head branch after merge
+    conditions:
+      - merged
     actions:
       label:
         remove:

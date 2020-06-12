@@ -17,6 +17,11 @@ jobs:
         with:
           versionSpec: '5.x'
 
+      - name: Install GitReleaseManager
+        uses: gittools/actions/gitreleasemanager/setup@master
+        with:
+          versionSpec: '0.11.x'
+
       - name: Use GitVersion
         id: gitversion
         uses: gittools/actions/gitversion/execute@master
@@ -37,9 +42,19 @@ jobs:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get Repo and Owner
+        shell: pwsh
+        id: repository
+        run: |
+          $parts = $ENV:GITHUB_REPOSITORY.Split('/')
+          echo "::set-output name=owner::$($parts[0])"
+          echo "::set-output name=repository::$($parts[1])"
+
       - name: Close Milestone
-        uses: adlerhsieh/prepare-release@0.1.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO_OWNER: ''
-          REPO: ''
+        shell: pwsh
+        run: |
+          dotnet gitreleasemanager close `
+            -o "${{ steps.repository.outputs.owner }}" `
+            -r "${{ steps.repository.outputs.repository }}" `
+            --token "${{ secrets.GITHUB_TOKEN }}" `
+            -m "v${{ steps.gitversion.outputs.majorMinorPatch }}"

@@ -8691,8 +8691,10 @@ function updatePullRequestLabel(github, request, pr, defaultLabel) {
     return __awaiter(this, void 0, void 0, function* () {
         const mergeLabel = pr.labels.find(z => !z.name.includes('merge'));
         const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
+        console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
         if (hasLabel)
             return;
+        console.log('adding default label', defaultLabel);
         yield github.issues.addLabels(Object.assign(Object.assign({}, request), { issue_number: pr.number, labels: [defaultLabel] }));
     });
 }

@@ -8656,6 +8656,8 @@ function ensureMilestonesAreCorrect(github, request) {
         const milestoneRange = iterable_1.toArray(iterable_1.from(milestones).pipe(ix.filter(z => !z.closed_at)));
         const currentPendingMilestone = milestoneRange[0];
         const remainingOpenMilestones = milestoneRange.slice(1);
+        console.log('Current Milestone', currentPendingMilestone.title);
+        console.log('Old Milestones', remainingOpenMilestones.map(z => z.title));
         if (!remainingOpenMilestones.length)
             return rxjs_1.empty();
         const issues = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0)).pipe(operators_1.mergeMap(milestone => rxifyRequest(github, github.issues.listForRepo, Object.assign(Object.assign({}, request), { 
@@ -40629,6 +40631,7 @@ function run() {
                 }
             }
             else {
+                console.log('ensuring milestones are updated');
                 yield ensure_milestone_1.ensureMilestonesAreCorrect(github, repo).toPromise();
             }
         }

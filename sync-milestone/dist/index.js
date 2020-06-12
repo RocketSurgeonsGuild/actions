@@ -8669,7 +8669,7 @@ function ensureMilestonesAreCorrect(github, request) {
         // eslint-disable-next-line @typescript-eslint/promise-function-async
         operators_1.mergeMap(({ issue }) => rxjs_1.from(issue.pull_request
             ? github.pulls.update(Object.assign(Object.assign({}, request), { pull_number: issue.number, milestone: currentPendingMilestone.number }))
-            : github.issues.update(Object.assign(Object.assign({}, request), { issue_number: issue.number, milestone: currentPendingMilestone.number })))), operators_1.toArray())
+            : github.issues.update(Object.assign(Object.assign({}, request), { issue_number: issue.number, milestone: currentPendingMilestone.number })))), operators_1.tap(x => console.log(x), x => console.error(x)), operators_1.toArray())
             .toPromise();
         const deleteMilestones = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0))
             .pipe(operators_1.mergeMap(milestone => {

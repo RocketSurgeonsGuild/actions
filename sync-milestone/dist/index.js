@@ -8660,7 +8660,8 @@ function ensureMilestonesAreCorrect(github, request) {
         console.log('Old Milestones', remainingOpenMilestones.map(z => z.title));
         if (!remainingOpenMilestones.length)
             return rxjs_1.empty();
-        const issues = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0)).pipe(operators_1.mergeMap(milestone => rxifyRequest(github, github.issues.listForRepo, Object.assign(Object.assign({}, request), { 
+        const issues = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0))
+            .pipe(operators_1.mergeMap(milestone => rxifyRequest(github, github.issues.listForRepo, Object.assign(Object.assign({}, request), { 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             milestone: milestone.number, state: 'all' })).pipe(operators_1.map(issue => ({ issue, milestone })))), operators_1.tap(({ issue, milestone }) => {
             console.log(`Moving issue '${issue.title}' from ${milestone.title} to ${currentPendingMilestone.title}`);
@@ -8668,10 +8669,13 @@ function ensureMilestonesAreCorrect(github, request) {
         // eslint-disable-next-line @typescript-eslint/promise-function-async
         operators_1.mergeMap(({ issue }) => rxjs_1.from(issue.pull_request
             ? github.pulls.update(Object.assign(Object.assign({}, request), { pull_number: issue.number, milestone: currentPendingMilestone.number }))
-            : github.issues.update(Object.assign(Object.assign({}, request), { issue_number: issue.number, milestone: currentPendingMilestone.number })))), operators_1.toArray());
-        const deleteMilestones = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0)).pipe(operators_1.mergeMap(milestone => {
+            : github.issues.update(Object.assign(Object.assign({}, request), { issue_number: issue.number, milestone: currentPendingMilestone.number })))), operators_1.toArray())
+            .toPromise();
+        const deleteMilestones = rxjs_1.from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0))
+            .pipe(operators_1.mergeMap(milestone => {
             return rxjs_1.from(github.issues.deleteMilestone(Object.assign(Object.assign({}, request), { milestone_number: milestone.number })));
-        }));
+        }))
+            .toPromise();
         return rxjs_1.forkJoin(deleteMilestones, issues).pipe(operators_1.map(z => z[1]));
     }));
 }
@@ -8702,7 +8706,7 @@ function updatePullRequestLabel(github, request, pr, defaultLabel) {
 }
 exports.updatePullRequestLabel = updatePullRequestLabel;
 function getVersionMilestones(github, request) {
-    return rxifyRequest(github, github.issues.listMilestones, Object.assign(Object.assign({}, request), { state: 'all' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_1.slice(z, 0, 10)));
+    return rxifyRequest(github, github.issues.listMilestones, Object.assign(Object.assign({}, request), { state: 'open' })).pipe(operators_1.map(x => (Object.assign(Object.assign({}, x), { semver: semver_1.parse(x.title) }))), operators_1.filter(z => z.semver != null), operators_1.toArray(), operators_1.map(milestones => milestones.sort((a, b) => semver_1.rcompare(a.semver, b.semver))), operators_1.map(z => lodash_1.slice(z, 0, 10)));
 }
 function rxifyRequest(github, method, request) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

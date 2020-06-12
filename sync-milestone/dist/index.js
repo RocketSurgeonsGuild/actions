@@ -40624,7 +40624,7 @@ function run() {
             if (payload.pull_request) {
                 const pr = yield github.pulls.get(Object.assign(Object.assign({}, repo), { pull_number: payload.pull_request.number }));
                 yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
-                if (payload.action === 'closed') {
+                if (payload.action === 'closed' && pr.data.merged) {
                     yield ensure_milestone_1.updatePullRequestLabel(github, repo, pr.data, defaultLabel);
                 }
             }

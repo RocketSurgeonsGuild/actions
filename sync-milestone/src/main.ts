@@ -16,7 +16,7 @@ async function run(): Promise<void> {
             });
             await updatePullRequestMilestone(github, repo, pr.data).toPromise();
 
-            if (payload.action === 'closed') {
+            if (payload.action === 'closed' && pr.data.merged) {
                 await updatePullRequestLabel(github, repo, pr.data, defaultLabel);
             }
         } else {

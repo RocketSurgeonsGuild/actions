@@ -102,3 +102,4 @@ lib/**/*
 !*conf.js
 !*rc.js
 !**/dist/*.js
+scratch.*

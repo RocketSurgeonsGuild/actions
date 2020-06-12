@@ -1,61 +1,72 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { forkJoin, from, zip, empty, Observable, of } from 'rxjs';
-import { mergeMap, toArray, map, filter, skip, expand } from 'rxjs/operators';
-import { differenceBy, slice } from 'lodash-es';
+import { forkJoin, from, empty, Observable, of } from 'rxjs';
+import { mergeMap, toArray, map, filter, expand, tap } from 'rxjs/operators';
+import { slice } from 'lodash';
 import { getOctokit } from '@actions/github';
+import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
+import * as ix from 'ix/iterable/operators';
 import { parse, rcompare } from 'semver';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
 export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: string; repo: string }) {
+    request; //?
     const milestones = getVersionMilestones(github, request);
-    const versions = getTagVersions(github, request);
+    // const versions = getTagVersions(github, request);
+    // milestones; //?
+    // versions; //?
 
-    return forkJoin(milestones, versions).pipe(
-        mergeMap(([milestones, versions]) => {
-            const unlabeledMilestones = differenceBy(milestones, versions, z => z.semver);
-            const versionRange = ['refs/heads/master', ...versions.map(z => `refs/tags/${z.name}`)];
+    return milestones.pipe(
+        mergeMap(milestones => {
+            const milestoneRange = ixToArray(ixFrom(milestones).pipe(ix.filter(z => !z.closed_at)));
 
-            const versionRanges = zip(from(versionRange), from(versionRange).pipe(skip(1))).pipe(
-                mergeMap(([head, base]) =>
-                    getPullRequestsBetween(github, { ...request, base, head }).pipe(
-                        toArray(),
-                        map(pullRequests => ({ head, base, pullRequests })),
+            const currentPendingMilestone = milestoneRange[0];
+            const remainingOpenMilestones = milestoneRange.slice(1);
+            if (!remainingOpenMilestones.length) return empty();
+
+            const issues = from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0)).pipe(
+                mergeMap(milestone =>
+                    rxifyRequest(github, github.issues.listForRepo, {
+                        ...request,
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        milestone: milestone.number as any,
+                        state: 'all',
+                    }).pipe(map(issue => ({ issue, milestone }))),
+                ),
+                tap(({ issue, milestone }) => {
+                    console.log(`Moving issue '${issue.title}' from ${milestone.title} to ${currentPendingMilestone.title}`);
+                }),
+                // eslint-disable-next-line @typescript-eslint/promise-function-async
+                mergeMap(({ issue }) =>
+                    from(
+                        issue.pull_request
+                            ? github.pulls.update({
+                                  ...request,
+                                  pull_number: issue.number,
+                                  milestone: currentPendingMilestone.number,
+                              })
+                            : github.issues.update({
+                                  ...request,
+                                  issue_number: issue.number,
+                                  milestone: currentPendingMilestone.number,
+                              }),
                     ),
                 ),
+                toArray(),
             );
 
-            return versionRanges.pipe(
-                mergeMap(set => {
-                    const name = set.head.replace('refs/tags/', '').replace('refs/heads/', '');
-
-                    let milestone = milestones.find(z => z.title === name);
-                    if (name === 'master' && unlabeledMilestones.length) {
-                        milestone = unlabeledMilestones[0];
-                    }
-
-                    if (milestone) {
-                        return from(set.pullRequests).pipe(
-                            mergeMap(pr => {
-                                console.log(`checking milestone for #${pr.id} - ${pr.title}`);
-                                if (milestone && pr.milestone && pr.milestone.title !== milestone.title) {
-                                    console.log(`need to update milestone on ${pr.title} from ${pr.milestone.title} to ${milestone.title}`);
-                                    return from(
-                                        github.issues.update({
-                                            ...request,
-                                            milestone: milestone.number,
-                                            issue_number: pr.number,
-                                        }),
-                                    ).pipe(mergeMap(() => empty()));
-                                }
-                                return empty();
-                            }),
-                        );
-                    }
-
-                    return empty();
+            const deleteMilestones = from(remainingOpenMilestones.filter(z => z.open_issues === 0 && z.closed_issues === 0)).pipe(
+                mergeMap(milestone => {
+                    return from(
+                        github.issues.deleteMilestone({
+                            ...request,
+                            milestone_number: milestone.number,
+                        }),
+                    );
                 }),
             );
+
+            return forkJoin(deleteMilestones, issues).pipe(map(z => z[1]));
         }),
     );
 }
@@ -103,16 +114,6 @@ export async function updatePullRequestLabel(
     });
 }
 
-function getTagVersions(github: GitHub, request: { owner: string; repo: string }) {
-    return rxifyRequest(github, github.repos.listTags, request).pipe(
-        map(x => ({ ...x, semver: parse(x.name)! })),
-        filter(z => z.semver != null),
-        toArray(),
-        map(versions => versions.sort((a, b) => rcompare(a.semver, b.semver))),
-        map(z => slice(z, 0, 9)),
-    );
-}
-
 function getVersionMilestones(github: GitHub, request: { owner: string; repo: string }) {
     return rxifyRequest(github, github.issues.listMilestones, {
         ...request,
@@ -123,33 +124,6 @@ function getVersionMilestones(github: GitHub, request: { owner: string; repo: st
         toArray(),
         map(milestones => milestones.sort((a, b) => rcompare(a.semver, b.semver))),
         map(z => slice(z, 0, 10)),
-    );
-}
-
-function getPullRequestsBetween(
-    github: GitHub,
-    request: {
-        head: string;
-        base: string;
-        owner: string;
-        repo: string;
-    },
-) {
-    const { owner, repo } = request;
-    return rxifyRequest(github, github.repos.compareCommits, request).pipe(
-        mergeMap(commits =>
-            from(commits.commits).pipe(
-                mergeMap(
-                    commit =>
-                        rxifyRequest(github, github.repos.listPullRequestsAssociatedWithCommit, {
-                            owner,
-                            repo,
-                            commit_sha: commit.sha,
-                        }),
-                    4,
-                ),
-            ),
-        ),
     );
 }
 

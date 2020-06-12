@@ -45,17 +45,11 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
                     // eslint-disable-next-line @typescript-eslint/promise-function-async
                     mergeMap(({ issue }) =>
                         from(
-                            issue.pull_request
-                                ? github.pulls.update({
-                                      ...request,
-                                      pull_number: issue.number,
-                                      milestone: currentPendingMilestone.number,
-                                  })
-                                : github.issues.update({
-                                      ...request,
-                                      issue_number: issue.number,
-                                      milestone: currentPendingMilestone.number,
-                                  }),
+                            github.issues.update({
+                                ...request,
+                                issue_number: issue.number,
+                                milestone: currentPendingMilestone.number,
+                            }),
                         ),
                     ),
                     tap(

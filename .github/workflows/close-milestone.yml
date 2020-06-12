@@ -4,7 +4,7 @@ on:
     types:
       - released
 jobs:
-  milestone:
+  Close Milestone:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

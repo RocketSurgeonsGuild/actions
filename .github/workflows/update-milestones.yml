@@ -7,7 +7,7 @@ on:
       - reopened
 
 jobs:
-  update-pr-milestone:
+  Update Milestone:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

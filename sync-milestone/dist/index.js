@@ -8693,8 +8693,8 @@ function updatePullRequestMilestone(github, request, pr) {
 exports.updatePullRequestMilestone = updatePullRequestMilestone;
 function updatePullRequestLabel(github, request, pr, defaultLabel) {
     return __awaiter(this, void 0, void 0, function* () {
-        const mergeLabel = pr.labels.find(z => !z.name.includes('merge'));
-        const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
+        const mergeLabel = pr.labels.filter(z => !z.name.includes('merge') && z.name.includes(':'));
+        const hasLabel = mergeLabel.length > 0;
         console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
         if (hasLabel)
             return;

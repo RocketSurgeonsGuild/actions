@@ -105,8 +105,8 @@ export async function updatePullRequestLabel(
     pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
     defaultLabel: string,
 ) {
-    const mergeLabel = pr.labels.find(z => !z.name.includes('merge'));
-    const hasLabel = mergeLabel ? pr.labels.length > 1 : pr.labels.length > 0;
+    const mergeLabel = pr.labels.filter(z => !z.name.includes('merge') && z.name.includes(':'));
+    const hasLabel = mergeLabel.length > 0;
 
     console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
     if (hasLabel) return;

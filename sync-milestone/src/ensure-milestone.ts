@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { forkJoin, from, empty, Observable, of } from 'rxjs';
 import { mergeMap, toArray, map, filter, expand, tap } from 'rxjs/operators';
-import { slice } from 'lodash';
 import { getOctokit } from '@actions/github';
 import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
 import * as ix from 'ix/iterable/operators';
@@ -10,11 +9,7 @@ import { parse, rcompare } from 'semver';
 type GitHub = ReturnType<typeof getOctokit>;
 
 export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: string; repo: string }) {
-    request; //?
     const milestones = getVersionMilestones(github, request);
-    // const versions = getTagVersions(github, request);
-    // milestones; //?
-    // versions; //?
 
     return milestones.pipe(
         mergeMap(milestones => {
@@ -128,7 +123,6 @@ function getVersionMilestones(github: GitHub, request: { owner: string; repo: st
         filter(z => z.semver != null),
         toArray(),
         map(milestones => milestones.sort((a, b) => rcompare(a.semver, b.semver))),
-        map(z => slice(z, 0, 10)),
     );
 }
 

@@ -35,6 +35,7 @@ jobs:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.RSG_BOT_TOKEN }}
 
+      # Close the milestone based on the given release
       - name: Close Milestone
         shell: pwsh
         if: ${{ !github.event.release.prerelease }}

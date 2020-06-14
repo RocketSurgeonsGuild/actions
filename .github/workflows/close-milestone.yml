@@ -1,8 +1,10 @@
 name: Close Milestone
+
 on:
   release:
     types:
       - released
+
 jobs:
   close_milestone:
     runs-on: ubuntu-latest

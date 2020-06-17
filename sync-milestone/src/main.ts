@@ -14,10 +14,18 @@ async function run(): Promise<void> {
                 ...repo,
                 pull_number: payload.pull_request.number,
             });
-            await updatePullRequestMilestone(github, repo, pr.data).toPromise();
 
             if (payload.action === 'closed' && pr.data.merged) {
+                await updatePullRequestMilestone(github, repo, pr.data).toPromise();
                 await updatePullRequestLabel(github, repo, pr.data, defaultLabel);
+            } else if (payload.action === 'closed' && !pr.data.merged) {
+                await github.issues.update({
+                    ...repo,
+                    milestone: null,
+                    issue_number: pr.data.number,
+                });
+            } else {
+                await updatePullRequestMilestone(github, repo, pr.data).toPromise();
             }
         } else {
             console.log('ensuring milestones are updated');

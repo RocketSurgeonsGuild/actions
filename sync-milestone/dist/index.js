@@ -23502,9 +23502,15 @@ function run() {
             const github = github_1.getOctokit(githubToken, {});
             if (payload.pull_request) {
                 const pr = yield github.pulls.get(Object.assign(Object.assign({}, repo), { pull_number: payload.pull_request.number }));
-                yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
                 if (payload.action === 'closed' && pr.data.merged) {
+                    yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
                     yield ensure_milestone_1.updatePullRequestLabel(github, repo, pr.data, defaultLabel);
+                }
+                else if (payload.action === 'closed' && !pr.data.merged) {
+                    yield github.issues.update(Object.assign(Object.assign({}, repo), { milestone: null, issue_number: pr.data.number }));
+                }
+                else {
+                    yield ensure_milestone_1.updatePullRequestMilestone(github, repo, pr.data).toPromise();
                 }
             }
             else {

@@ -1,9 +1,0 @@
-name: 'Nukeeper Consolidated'
-description: 'Runs nukeeper in a consolidated manner such that packages are commonly usually versioned together, will be updated at the same time'
-inputs:
-  github-token:
-    description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
-    required: true
-runs:
-  using: 'node12'
-  main: 'dist/index.js'

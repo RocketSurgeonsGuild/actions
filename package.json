@@ -39,7 +39,7 @@
     "ix": "^3.0.2",
     "lodash": "^4.17.15",
     "lodash-es": "^4.17.15",
-    "rxjs": "^6.5.5",
+    "rxjs": "^6.6.0",
     "semver": "^7.3.2"
   },
   "devDependencies": {

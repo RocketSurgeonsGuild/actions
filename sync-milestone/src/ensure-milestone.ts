@@ -100,7 +100,7 @@ export async function updatePullRequestLabel(
     pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
     defaultLabel: string,
 ) {
-    const mergeLabel = pr.labels.filter(z => !z.name.includes('merge') && z.name.includes(':'));
+    const mergeLabel = pr.labels.filter(z => !z.name.includes('merge'));
     const hasLabel = mergeLabel.length > 0;
 
     console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
@@ -126,15 +126,7 @@ function getVersionMilestones(github: GitHub, request: { owner: string; repo: st
     );
 }
 
-type ValueOf<T> = T extends (infer R)[]
-    ? R
-    : T extends Promise<infer R>
-    ? R
-    : T extends Observable<infer R>
-    ? R
-    : T extends Iterator<infer R>
-    ? R
-    : T;
+type ValueOf<T> = T extends (infer R)[] ? R : T extends Promise<infer R> ? R : T extends Observable<infer R> ? R : T extends Iterator<infer R> ? R : T;
 
 function rxifyRequest<T, R>(
     github: GitHub,

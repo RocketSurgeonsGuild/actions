@@ -23,4 +23,6 @@ pull_request_rules:
       label:
         remove:
           - ':shipit: merge'
+          - 'github-actions'
+          - 'javascript'
       delete_head_branch: {}

@@ -60,7 +60,7 @@
     "eslint-rule-documentation": "^1.0.0",
     "husky": "^4.3.0",
     "jest": "^26.6.0",
-    "jest-circus": "^26.6.0",
+    "jest-circus": "^26.6.1",
     "jest-cli": "^26.6.0",
     "js-yaml": "^3.14.0",
     "lint-staged": "^10.4.2",

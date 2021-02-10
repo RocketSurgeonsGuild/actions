@@ -6,7 +6,6 @@ async function run(): Promise<void> {
     try {
         const { payload, repo } = context;
         const githubToken: string = getInput('github-token', { required: true });
-        const defaultLabel: string = getInput('default-label', { required: true });
         const github = getOctokit(githubToken, {});
 
         if (payload.pull_request) {

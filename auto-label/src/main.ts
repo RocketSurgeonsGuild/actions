@@ -16,7 +16,7 @@ async function run(): Promise<void> {
             });
 
             if (payload.action === 'opened' && pr.data.merged) {
-                await addPullRequestLabel(github, repo, pr.data).toPromise();
+                await addPullRequestLabel(github, repo, pr.data);
             } 
         }
     } catch (error) {

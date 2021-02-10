@@ -2,7 +2,7 @@ import { debug } from '@actions/core';
 import { bindNodeCallback } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { readFile } from 'fs';
-import { safeLoad } from 'js-yaml';
+import { load } from 'js-yaml';
 
 const readFile$ = bindNodeCallback(readFile);
 
@@ -21,7 +21,7 @@ export async function mergeData(files: string[]) {
         const content = await readFile$(item)
             .pipe(map(z => z.toString()))
             .toPromise();
-        const data: ILabelItem[] | undefined = safeLoad(content);
+        const data = load(content) as ILabelItem[] | undefined;
         if (!Array.isArray(data)) continue;
         for (const dataItem of data) {
             result.set(dataItem.name, dataItem);

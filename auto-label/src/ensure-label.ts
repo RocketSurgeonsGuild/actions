@@ -17,7 +17,7 @@ export async function addPullRequestLabel(
     console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
     if (hasLabel) return;
 
-    console.log('adding default label', titleLabel);
+    console.log('adding title label', titleLabel);
     await github.issues.addLabels({
         ...request,
         issue_number: pr.number,

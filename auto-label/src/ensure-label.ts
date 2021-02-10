@@ -1,14 +1,12 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { map, filter } from 'rxjs/operators';
 import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
-
 export async function addPullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
-    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData
+    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
 ) {
     const title = pr.title;
     const titleLabel = pr.labels.filter(z => z.name.includes(title));
@@ -21,6 +19,6 @@ export async function addPullRequestLabel(
     await github.issues.addLabels({
         ...request,
         issue_number: pr.number,
-        labels: [titleLabel.name]
+        labels: titleLabel.map(z => z.name),
     });
 }

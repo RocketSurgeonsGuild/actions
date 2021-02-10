@@ -8,6 +8,7 @@ export async function addPullRequestLabel(
     request: { owner: string; repo: string },
     pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
 ) {
+    console.log(`pr title: ${pr.title}`);
     const title = pr.title.split(':')[0].trim();
     const titleLabel = pr.labels.filter(z => z.name.includes(title));
     const hasLabel = titleLabel.length > 0;

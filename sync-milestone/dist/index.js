@@ -157,7 +157,7 @@ module.exports = osName;
 /* 3 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const compareLoose = (a, b) => compare(a, b, true)
 module.exports = compareLoose
 
@@ -183,11 +183,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function expand(project, concurrent, scheduler) {
     if (concurrent === void 0) { concurrent = Number.POSITIVE_INFINITY; }
-    if (scheduler === void 0) { scheduler = undefined; }
     concurrent = (concurrent || 0) < 1 ? Number.POSITIVE_INFINITY : concurrent;
     return function (source) { return source.lift(new ExpandOperator(project, concurrent, scheduler)); };
 }
@@ -255,7 +253,7 @@ var ExpandSubscriber = (function (_super) {
     ExpandSubscriber.prototype.subscribeToProjection = function (result, value, index) {
         this.active++;
         var destination = this.destination;
-        destination.add(subscribeToResult_1.subscribeToResult(this, result, value, index));
+        destination.add(innerSubscribe_1.innerSubscribe(result, new innerSubscribe_1.SimpleInnerSubscriber(this)));
     };
     ExpandSubscriber.prototype._complete = function () {
         this.hasCompleted = true;
@@ -264,13 +262,11 @@ var ExpandSubscriber = (function (_super) {
         }
         this.unsubscribe();
     };
-    ExpandSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    ExpandSubscriber.prototype.notifyNext = function (innerValue) {
         this._next(innerValue);
     };
-    ExpandSubscriber.prototype.notifyComplete = function (innerSub) {
+    ExpandSubscriber.prototype.notifyComplete = function () {
         var buffer = this.buffer;
-        var destination = this.destination;
-        destination.remove(innerSub);
         this.active--;
         if (buffer && buffer.length > 0) {
             this._next(buffer.shift());
@@ -280,7 +276,7 @@ var ExpandSubscriber = (function (_super) {
         }
     };
     return ExpandSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 exports.ExpandSubscriber = ExpandSubscriber;
 //# sourceMappingURL=expand.js.map
 
@@ -441,6 +437,7 @@ module.exports = eos;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.take = exports.TakeIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class TakeIterable extends iterablex_1.IterableX {
     constructor(source, count) {
@@ -461,6 +458,15 @@ class TakeIterable extends iterablex_1.IterableX {
     }
 }
 exports.TakeIterable = TakeIterable;
+/**
+ * Returns a specified number of contiguous elements from the start of an iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} count The number of elements to return.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable sequence that contains the specified
+ * number of elements from the start of the input sequence.
+ */
 function take(count) {
     return function takeOperatorFunction(source) {
         return new TakeIterable(source, count);
@@ -623,8 +629,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function exhaust() {
     return function (source) { return source.lift(new SwitchFirstOperator()); };
 }
@@ -648,7 +653,7 @@ var SwitchFirstSubscriber = (function (_super) {
     SwitchFirstSubscriber.prototype._next = function (value) {
         if (!this.hasSubscription) {
             this.hasSubscription = true;
-            this.add(subscribeToResult_1.subscribeToResult(this, value));
+            this.add(innerSubscribe_1.innerSubscribe(value, new innerSubscribe_1.SimpleInnerSubscriber(this)));
         }
     };
     SwitchFirstSubscriber.prototype._complete = function () {
@@ -657,15 +662,14 @@ var SwitchFirstSubscriber = (function (_super) {
             this.destination.complete();
         }
     };
-    SwitchFirstSubscriber.prototype.notifyComplete = function (innerSub) {
-        this.remove(innerSub);
+    SwitchFirstSubscriber.prototype.notifyComplete = function () {
         this.hasSubscription = false;
         if (this.hasCompleted) {
             this.destination.complete();
         }
     };
     return SwitchFirstSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=exhaust.js.map
 
 /***/ }),
@@ -679,8 +683,9 @@ var SwitchFirstSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.intersect = exports.IntersectIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const arrayindexof_1 = __webpack_require__(117);
+const arrayindexof_1 = __webpack_require__(157);
 const comparer_1 = __webpack_require__(492);
 function arrayRemove(array, item, comparer) {
     const idx = arrayindexof_1.arrayIndexOf(array, item, comparer);
@@ -710,6 +715,17 @@ class IntersectIterable extends iterablex_1.IterableX {
     }
 }
 exports.IntersectIterable = IntersectIterable;
+/**
+ * Produces the set intersection of two iterable sequences.
+ *
+ * @export
+ * @template TSource The type of the elements of the input sequences.
+ * @param {Iterable<TSource>} second An iterable sequence whose distinct elements that also
+ * appear in the first sequence will be returned.
+ * @param {((x: TSource, y: TSource) => boolean)} [comparer=defaultComparer] An equality comparer to compare values.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns a sequence that contains the elements that form the set
+ * intersection of two sequences.
+ */
 function intersect(second, comparer = comparer_1.comparer) {
     return function intersectOperatorFunction(first) {
         return new IntersectIterable(first, second, comparer);
@@ -722,118 +738,13 @@ exports.intersect = intersect;
 
 /***/ }),
 /* 25 */,
-/* 26 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const comparer_1 = __webpack_require__(492);
-async function sequenceEqual(source, other, comparer = comparer_1.comparerAsync) {
-    const it1 = source[Symbol.asyncIterator]();
-    const it2 = other[Symbol.asyncIterator]();
-    let next1;
-    let next2;
-    while (!(next1 = await it1.next()).done) {
-        if (!(!(next2 = await it2.next()).done && (await comparer(next1.value, next2.value)))) {
-            return false;
-        }
-    }
-    return !!(await it2.next()).done;
-}
-exports.sequenceEqual = sequenceEqual;
-
-//# sourceMappingURL=sequenceequal.js.map
-
-
-/***/ }),
+/* 26 */,
 /* 27 */,
 /* 28 */,
 /* 29 */,
 /* 30 */,
-/* 31 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class OnErrorResumeNextAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(source) {
-        super();
-        this._source = source;
-    }
-    async *[Symbol.asyncIterator]() {
-        for (const item of this._source) {
-            const it = item[Symbol.asyncIterator]();
-            while (1) {
-                let next;
-                try {
-                    next = await it.next();
-                }
-                catch (e) {
-                    break;
-                }
-                if (next.done) {
-                    break;
-                }
-                yield next.value;
-            }
-        }
-    }
-}
-exports.OnErrorResumeNextAsyncIterable = OnErrorResumeNextAsyncIterable;
-function onErrorResumeNext(...args) {
-    return new OnErrorResumeNextAsyncIterable(args);
-}
-exports.onErrorResumeNext = onErrorResumeNext;
-
-//# sourceMappingURL=onerrorresumenext.js.map
-
-
-/***/ }),
-/* 32 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asyncsink_1 = __webpack_require__(506);
-const memoize_1 = __webpack_require__(74);
-function asyncifyErrback(func) {
-    return function (...args) {
-        const sink = new asyncsink_1.AsyncSink();
-        const handler = function (err, ...innerArgs) {
-            if (err) {
-                sink.error(err);
-                sink.end();
-            }
-            else {
-                sink.write(innerArgs.length === 1 ? innerArgs[0] : innerArgs);
-                sink.end();
-            }
-        };
-        try {
-            func(...args.concat(handler));
-        }
-        catch (e) {
-            sink.error(e);
-            sink.end();
-        }
-        const yielder = async function* () {
-            for (let next; !(next = await sink.next()).done;) {
-                yield next.value;
-            }
-        };
-        return memoize_1.memoize()(yielder());
-    };
-}
-exports.asyncifyErrback = asyncifyErrback;
-
-//# sourceMappingURL=asyncifyerrback.js.map
-
-
-/***/ }),
+/* 31 */,
+/* 32 */,
 /* 33 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -964,6 +875,7 @@ function getPromiseCtor(promiseCtor) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isFetchResponse = exports.isWritableDOMStream = exports.isReadableDOMStream = exports.isWritableNodeStream = exports.isReadableNodeStream = exports.isObservable = exports.isAsyncIterable = exports.isIterator = exports.isIterable = exports.isArrayLike = exports.isPromise = exports.isObject = exports.isFunction = void 0;
 /** @ignore */
 const isNumber = (x) => typeof x === 'number';
 /** @ignore */
@@ -1043,10 +955,11 @@ exports.isFetchResponse = (x) => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(422);
+const tslib_1 = __webpack_require__(779);
 tslib_1.__exportStar(__webpack_require__(44), exports);
 tslib_1.__exportStar(__webpack_require__(490), exports);
 tslib_1.__exportStar(__webpack_require__(531), exports);
+tslib_1.__exportStar(__webpack_require__(933), exports);
 tslib_1.__exportStar(__webpack_require__(458), exports);
 tslib_1.__exportStar(__webpack_require__(578), exports);
 tslib_1.__exportStar(__webpack_require__(778), exports);
@@ -1060,27 +973,25 @@ tslib_1.__exportStar(__webpack_require__(562), exports);
 tslib_1.__exportStar(__webpack_require__(642), exports);
 tslib_1.__exportStar(__webpack_require__(829), exports);
 tslib_1.__exportStar(__webpack_require__(879), exports);
-tslib_1.__exportStar(__webpack_require__(359), exports);
+tslib_1.__exportStar(__webpack_require__(586), exports);
 tslib_1.__exportStar(__webpack_require__(363), exports);
 tslib_1.__exportStar(__webpack_require__(24), exports);
 tslib_1.__exportStar(__webpack_require__(76), exports);
-tslib_1.__exportStar(__webpack_require__(672), exports);
-tslib_1.__exportStar(__webpack_require__(430), exports);
-tslib_1.__exportStar(__webpack_require__(914), exports);
+tslib_1.__exportStar(__webpack_require__(226), exports);
 tslib_1.__exportStar(__webpack_require__(799), exports);
 tslib_1.__exportStar(__webpack_require__(965), exports);
 tslib_1.__exportStar(__webpack_require__(926), exports);
-tslib_1.__exportStar(__webpack_require__(273), exports);
-tslib_1.__exportStar(__webpack_require__(696), exports);
+tslib_1.__exportStar(__webpack_require__(963), exports);
+tslib_1.__exportStar(__webpack_require__(624), exports);
 tslib_1.__exportStar(__webpack_require__(876), exports);
-tslib_1.__exportStar(__webpack_require__(864), exports);
+tslib_1.__exportStar(__webpack_require__(674), exports);
 tslib_1.__exportStar(__webpack_require__(147), exports);
 tslib_1.__exportStar(__webpack_require__(475), exports);
 tslib_1.__exportStar(__webpack_require__(98), exports);
 tslib_1.__exportStar(__webpack_require__(502), exports);
 tslib_1.__exportStar(__webpack_require__(585), exports);
 tslib_1.__exportStar(__webpack_require__(515), exports);
-tslib_1.__exportStar(__webpack_require__(508), exports);
+tslib_1.__exportStar(__webpack_require__(890), exports);
 tslib_1.__exportStar(__webpack_require__(192), exports);
 tslib_1.__exportStar(__webpack_require__(934), exports);
 tslib_1.__exportStar(__webpack_require__(10), exports);
@@ -1088,6 +999,7 @@ tslib_1.__exportStar(__webpack_require__(85), exports);
 tslib_1.__exportStar(__webpack_require__(442), exports);
 tslib_1.__exportStar(__webpack_require__(722), exports);
 tslib_1.__exportStar(__webpack_require__(63), exports);
+tslib_1.__exportStar(__webpack_require__(266), exports);
 
 //# sourceMappingURL=index.js.map
 
@@ -1126,6 +1038,7 @@ exports.of = of;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.whileDo = void 0;
 const iterablex_1 = __webpack_require__(954);
 class WhileIterable extends iterablex_1.IterableX {
     constructor(condition, source) {
@@ -1139,7 +1052,17 @@ class WhileIterable extends iterablex_1.IterableX {
         }
     }
 }
-function whileDo(condition, source) {
+/**
+ * Repeats the given source as long as the specified conditions holds, where
+ * the condition is evaluated before each repeated source is iterated.
+ *
+ * @export
+ * @template TSource
+ * @param {Iterable<TSource>} source Source to repeat as long as the condition function evaluates to true.
+ * @param {((signal?: AbortSignal) => boolean)} condition Condition that will be evaluated before the source sequence is iterated.
+ * @returns {IterableX<TSource>} An iterable which is repeated while the condition returns true.
+ */
+function whileDo(source, condition) {
     return new WhileIterable(condition, source);
 }
 exports.whileDo = whileDo;
@@ -1175,7 +1098,7 @@ var combineAll_1 = __webpack_require__(627);
 exports.combineAll = combineAll_1.combineAll;
 var combineLatest_1 = __webpack_require__(335);
 exports.combineLatest = combineLatest_1.combineLatest;
-var concat_1 = __webpack_require__(102);
+var concat_1 = __webpack_require__(399);
 exports.concat = concat_1.concat;
 var concatAll_1 = __webpack_require__(919);
 exports.concatAll = concatAll_1.concatAll;
@@ -1247,8 +1170,7 @@ var mergeAll_1 = __webpack_require__(465);
 exports.mergeAll = mergeAll_1.mergeAll;
 var mergeMap_1 = __webpack_require__(246);
 exports.mergeMap = mergeMap_1.mergeMap;
-var mergeMap_2 = __webpack_require__(246);
-exports.flatMap = mergeMap_2.mergeMap;
+exports.flatMap = mergeMap_1.flatMap;
 var mergeMapTo_1 = __webpack_require__(196);
 exports.mergeMapTo = mergeMapTo_1.mergeMapTo;
 var mergeScan_1 = __webpack_require__(619);
@@ -1372,6 +1294,7 @@ exports.zipAll = zipAll_1.zipAll;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.buffer = exports.BufferIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class BufferIterable extends iterablex_1.IterableX {
     constructor(source, count, skip) {
@@ -1554,9 +1477,9 @@ const windowsRelease = release => {
 	if ((!release || release === os.release()) && ['6.1', '6.2', '6.3', '10.0'].includes(ver)) {
 		let stdout;
 		try {
-			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
-		} catch (_) {
 			stdout = execa.sync('wmic', ['os', 'get', 'Caption']).stdout || '';
+		} catch (_) {
+			stdout = execa.sync('powershell', ['(Get-CimInstance -ClassName Win32_OperatingSystem).caption']).stdout || '';
 		}
 
 		const year = (stdout.match(/2008|2012|2016|2019/) || [])[0];
@@ -1579,6 +1502,7 @@ module.exports = windowsRelease;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.pipe = void 0;
 const iterablex_1 = __webpack_require__(954);
 const from_1 = __webpack_require__(166);
 function pipe(source, ...operations) {
@@ -1596,70 +1520,7 @@ exports.pipe = pipe;
 
 
 /***/ }),
-/* 51 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class RaceAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(left, right) {
-        super();
-        this._left = left;
-        this._right = right;
-    }
-    async *[Symbol.asyncIterator]() {
-        const leftIt = this._left[Symbol.asyncIterator]();
-        const rightIt = this._right[Symbol.asyncIterator]();
-        let otherIterator;
-        let resultIterator;
-        const { value, done } = await Promise.race([
-            leftIt.next().then(x => {
-                if (!resultIterator) {
-                    resultIterator = leftIt;
-                    otherIterator = rightIt;
-                }
-                return x;
-            }),
-            rightIt.next().then(x => {
-                if (!resultIterator) {
-                    resultIterator = rightIt;
-                    otherIterator = leftIt;
-                }
-                return x;
-            })
-        ]);
-        if (!done) {
-            yield value;
-        }
-        otherIterator = otherIterator;
-        resultIterator = resultIterator;
-        // Cancel/finish other iterator
-        if (otherIterator.return) {
-            await otherIterator.return();
-        }
-        let next;
-        while (!(next = await resultIterator.next()).done) {
-            yield next.value;
-        }
-    }
-}
-/**
- * Propagates the async sequence that reacts first.
- * @param {AsyncIterable<T>} left First async sequence.
- * @param {AsyncIterable<T>} right Second async sequence.
- * @return {AsyncIterable<T>} An async sequence that surfaces either of the given sequences, whichever reacted first.
- */
-function race(left, right) {
-    return new RaceAsyncIterable(left, right);
-}
-exports.race = race;
-
-//# sourceMappingURL=race.js.map
-
-
-/***/ }),
+/* 51 */,
 /* 52 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -1956,8 +1817,9 @@ exports.first = first;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.union = exports.UnionIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const arrayindexof_1 = __webpack_require__(117);
+const arrayindexof_1 = __webpack_require__(157);
 const comparer_1 = __webpack_require__(492);
 class UnionIterable extends iterablex_1.IterableX {
     constructor(left, right, comparer) {
@@ -1983,6 +1845,16 @@ class UnionIterable extends iterablex_1.IterableX {
     }
 }
 exports.UnionIterable = UnionIterable;
+/**
+ * Produces the set union of two sequences by using the given equality comparer.
+ *
+ * @export
+ * @template TSource The type of the elements of the input sequences.
+ * @param {AsyncIterable<TSource>} right An iterable sequence whose distinct elements form the second set for the union.
+ * @param {((x: TSource, y: TSource) => boolean)} [comparer=defaultComparer] The equality comparer to compare values.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable sequence that contains the elements from both input sequences,
+ * excluding duplicates.
+ */
 function union(right, comparer = comparer_1.comparer) {
     return function unionOperatorFunction(left) {
         return new UnionIterable(left, right, comparer);
@@ -2000,6 +1872,7 @@ exports.union = union;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.expand = exports.ExpandIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class ExpandIterable extends iterablex_1.IterableX {
     constructor(source, fn) {
@@ -2019,6 +1892,15 @@ class ExpandIterable extends iterablex_1.IterableX {
     }
 }
 exports.ExpandIterable = ExpandIterable;
+/**
+ * Expands (breadth first) the iterable sequence by recursively applying a selector function to generate more sequences at each recursion level.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @param {(( value: TSource) => Iterable<TSource>)} selector Selector function to retrieve the next sequence to expand.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator which returns a sequence with results
+ * from the recursive expansion of the source sequence.
+ */
 function expand(selector) {
     return function expandOperatorFunction(source) {
         return new ExpandIterable(source, selector);
@@ -2037,15 +1919,12 @@ const debug = __webpack_require__(579)
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = __webpack_require__(181)
 const { re, t } = __webpack_require__(906)
 
+const parseOptions = __webpack_require__(143)
 const { compareIdentifiers } = __webpack_require__(760)
 class SemVer {
   constructor (version, options) {
-    if (!options || typeof options !== 'object') {
-      options = {
-        loose: !!options,
-        includePrerelease: false
-      }
-    }
+    options = parseOptions(options)
+
     if (version instanceof SemVer) {
       if (version.loose === !!options.loose &&
           version.includePrerelease === !!options.includePrerelease) {
@@ -2433,8 +2312,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function takeUntil(notifier) {
     return function (source) { return source.lift(new TakeUntilOperator(notifier)); };
 }
@@ -2445,7 +2323,7 @@ var TakeUntilOperator = (function () {
     }
     TakeUntilOperator.prototype.call = function (subscriber, source) {
         var takeUntilSubscriber = new TakeUntilSubscriber(subscriber);
-        var notifierSubscription = subscribeToResult_1.subscribeToResult(takeUntilSubscriber, this.notifier);
+        var notifierSubscription = innerSubscribe_1.innerSubscribe(this.notifier, new innerSubscribe_1.SimpleInnerSubscriber(takeUntilSubscriber));
         if (notifierSubscription && !takeUntilSubscriber.seenValue) {
             takeUntilSubscriber.add(notifierSubscription);
             return source.subscribe(takeUntilSubscriber);
@@ -2461,14 +2339,14 @@ var TakeUntilSubscriber = (function (_super) {
         _this.seenValue = false;
         return _this;
     }
-    TakeUntilSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    TakeUntilSubscriber.prototype.notifyNext = function () {
         this.seenValue = true;
         this.complete();
     };
     TakeUntilSubscriber.prototype.notifyComplete = function () {
     };
     return TakeUntilSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=takeUntil.js.map
 
 /***/ }),
@@ -2477,36 +2355,18 @@ var TakeUntilSubscriber = (function (_super) {
 /* 70 */,
 /* 71 */,
 /* 72 */,
-/* 73 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function first(source, predicate = async () => true) {
-    let i = 0;
-    for await (const item of source) {
-        if (await predicate(item, i++)) {
-            return item;
-        }
-    }
-    return undefined;
-}
-exports.first = first;
-
-//# sourceMappingURL=first.js.map
-
-
-/***/ }),
+/* 73 */,
 /* 74 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.memoize = exports.MemoizeAsyncBuffer = void 0;
 const asynciterablex_1 = __webpack_require__(346);
 const _refcountlist_1 = __webpack_require__(241);
 const create_1 = __webpack_require__(414);
+const aborterror_1 = __webpack_require__(792);
 class MemoizeAsyncBuffer extends asynciterablex_1.AsyncIterableX {
     constructor(source, buffer) {
         super();
@@ -2516,7 +2376,8 @@ class MemoizeAsyncBuffer extends asynciterablex_1.AsyncIterableX {
         this._source = source;
         this._buffer = buffer;
     }
-    [Symbol.asyncIterator]() {
+    [Symbol.asyncIterator](signal) {
+        aborterror_1.throwIfAborted(signal);
         return this._getIterable(0);
     }
     async *_getIterable(offset = 0) {
@@ -2533,7 +2394,7 @@ class MemoizeAsyncBuffer extends asynciterablex_1.AsyncIterableX {
                     throw this._error;
                 }
                 if (this._shared === null) {
-                    this._shared = this._source.next().then(r => {
+                    this._shared = this._source.next().then((r) => {
                         this._shared = null;
                         if (!r.done) {
                             buffer.push(r.value);
@@ -2541,7 +2402,7 @@ class MemoizeAsyncBuffer extends asynciterablex_1.AsyncIterableX {
                         return r;
                     });
                 }
-                ({ done } = await this._shared.catch(e => {
+                ({ done } = await this._shared.catch((e) => {
                     this._error = e;
                     this._stopped = true;
                     throw e;
@@ -2557,6 +2418,20 @@ class MemoizeAsyncBuffer extends asynciterablex_1.AsyncIterableX {
     }
 }
 exports.MemoizeAsyncBuffer = MemoizeAsyncBuffer;
+/**
+ * Memoizes the source sequence within a selector function where a specified number of iterators can get access
+ * to all of the sequence's elements without causing multiple iterations over the source.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @template TResult Result sequence element type.
+ * @param {number} [readerCount=-1] Number of iterators that can access the underlying buffer. Once every
+ * iterator has obtained an element from the buffer, the element is removed from the buffer.
+ * @param {(value: AsyncIterable<TSource>) => AsyncIterable<TResult>} [selector] Selector function with memoized access
+ * to the source sequence for a specified number of iterators.
+ * @returns {(OperatorAsyncFunction<TSource, TSource | TResult>)} Sequence resulting from applying the selector function to the
+ * memoized view over the source sequence.
+ */
 function memoize(readerCount = -1, selector) {
     return function memoizeOperatorFunction(source) {
         if (!selector) {
@@ -2580,6 +2455,7 @@ exports.memoize = memoize;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.map = exports.MapIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const bindcallback_1 = __webpack_require__(270);
 class MapIterable extends iterablex_1.IterableX {
@@ -2596,6 +2472,19 @@ class MapIterable extends iterablex_1.IterableX {
     }
 }
 exports.MapIterable = MapIterable;
+/**
+ * Projects each element of an async-enumerable sequence into a new form.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TResult The type of the elements in the result sequence, obtained by running the selector
+ * function for each element in the source sequence.
+ * @param {((value: TSource, index: number) => TResult)} selector A transform function
+ * to apply to each source element.
+ * @param {*} [thisArg] Optional this for binding to the selector.
+ * @returns {OperatorFunction<TSource, TResult>} An iterable sequence whose elements are the result of invoking the transform
+ * function on each element of source.
+ */
 function map(selector, thisArg) {
     return function mapOperatorFunction(source) {
         return new MapIterable(source, bindcallback_1.bindCallback(selector, thisArg, 2));
@@ -2609,20 +2498,26 @@ exports.map = map;
 /***/ }),
 /* 77 */,
 /* 78 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const bindcallback_1 = __webpack_require__(270);
-function find(source, predicate, thisArg) {
-    if (typeof predicate !== 'function') {
-        throw new TypeError();
-    }
-    const f = bindcallback_1.bindCallback(predicate, thisArg, 2);
+exports.find = void 0;
+/**
+ * Returns the value of the first element in the provided iterable that satisfies the provided testing function.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source An iterable sequence whose elements to apply the predicate to.
+ * @param {FindOptions<T>} options The options for a predicate for filtering, thisArg for binding and AbortSignal for cancellation.
+ * @returns {(T | undefined)} The first element that matches the predicate.
+ */
+function find(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate } = options;
     let i = 0;
     for (const item of source) {
-        if (f(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             return item;
         }
     }
@@ -2707,7 +2602,31 @@ function isEventTarget(sourceObj) {
 /***/ }),
 /* 80 */,
 /* 81 */,
-/* 82 */,
+/* 82 */
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * Sanitizes an input into a string so it can be passed into issueCommand safely
+ * @param input input to sanitize into a string
+ */
+function toCommandValue(input) {
+    if (input === null || input === undefined) {
+        return '';
+    }
+    else if (typeof input === 'string' || input instanceof String) {
+        return input;
+    }
+    return JSON.stringify(input);
+}
+exports.toCommandValue = toCommandValue;
+//# sourceMappingURL=utils.js.map
+
+/***/ }),
 /* 83 */,
 /* 84 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -2756,6 +2675,7 @@ exports.using = using;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.takeWhile = exports.TakeWhileIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class TakeWhileIterable extends iterablex_1.IterableX {
     constructor(source, predicate) {
@@ -2774,6 +2694,15 @@ class TakeWhileIterable extends iterablex_1.IterableX {
     }
 }
 exports.TakeWhileIterable = TakeWhileIterable;
+/**
+ * Returns elements from an iterable sequence as long as a specified condition is true.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {((value: T, index: number) => boolean)} predicate A function to test each element for a condition.
+ * @returns {OperatorFunction<T, T>} An iterable sequence that contains the elements from the input sequence that occur
+ * before the element at which the test no longer passes.
+ */
 function takeWhile(predicate) {
     return function takeWhileOperatorFunction(source) {
         return new TakeWhileIterable(source, predicate);
@@ -2830,47 +2759,35 @@ exports.scheduled = scheduled;
 
 /***/ }),
 /* 91 */,
-/* 92 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-const SemVer = __webpack_require__(65)
-const compare = (a, b, loose) =>
-  new SemVer(a, loose).compare(new SemVer(b, loose))
-
-module.exports = compare
-
-
-/***/ }),
+/* 92 */,
 /* 93 */,
 /* 94 */
-/***/ (function(__unusedmodule, exports) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-async function reduce(source, accumulator, ...seed) {
-    const hasSeed = seed.length === 1;
-    let i = 0;
-    let hasValue = false;
-    let acc = seed[0];
-    for await (const item of source) {
-        if (hasValue || (hasValue = hasSeed)) {
-            acc = await accumulator(acc, item, i++);
-        }
-        else {
-            acc = item;
-            hasValue = true;
-            i++;
-        }
+exports.sum = void 0;
+const identity_1 = __webpack_require__(296);
+/**
+ * Computes the sum of a sequence of values.
+ *
+ * @export
+ * @param {Iterable<any>} source A sequence of values to calculate the sum.
+ * @param {MathOptions<any>} [options] Optional options for providing a selector, thisArg and abort signal.
+ * @returns {Promise<number>} A promise containing the sum of the sequence of values.
+ */
+function sum(source, options) {
+    const { ['selector']: selector = identity_1.identity, ['thisArg']: thisArg } = options || {};
+    let value = 0;
+    for (const item of source) {
+        value += selector.call(thisArg, item);
     }
-    if (!(hasSeed || hasValue)) {
-        throw new Error('Sequence contains no elements');
-    }
-    return acc;
+    return value;
 }
-exports.reduce = reduce;
+exports.sum = sum;
 
-//# sourceMappingURL=reduce.js.map
+//# sourceMappingURL=sum.js.map
 
 
 /***/ }),
@@ -2898,6 +2815,7 @@ exports.never = never;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.share = void 0;
 const iterablex_1 = __webpack_require__(954);
 const create_1 = __webpack_require__(228);
 class SharedIterable extends iterablex_1.IterableX {
@@ -2906,13 +2824,25 @@ class SharedIterable extends iterablex_1.IterableX {
         this._it = {
             next(value) {
                 return it.next(value);
-            }
+            },
         };
     }
     [Symbol.iterator]() {
         return this._it;
     }
 }
+/**
+ * Shares the source sequence within a selector function where each iterator can fetch the next element from the
+ * source sequence.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @template TResult Result sequence element type.
+ * @param {((value: Iterable<TSource>) => Iterable<TResult>)} [selector] Selector function with shared access
+ * to the source sequence for each iterator.
+ * @returns {(OperatorFunction<TSource, TSource | TResult>)} Sequence resulting from applying the selector function to the
+ * shared view over the source sequence.
+ */
 function share(selector) {
     return function shareOperatorFunction(source) {
         return selector
@@ -3158,17 +3088,34 @@ var SkipWhileSubscriber = (function (_super) {
 
 "use strict";
 
+// For internal use, subject to change.
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var concat_1 = __webpack_require__(406);
-function concat() {
-    var observables = [];
-    for (var _i = 0; _i < arguments.length; _i++) {
-        observables[_i] = arguments[_i];
+// We use any as a valid input type
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const fs = __importStar(__webpack_require__(747));
+const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
+function issueCommand(command, message) {
+    const filePath = process.env[`GITHUB_${command}`];
+    if (!filePath) {
+        throw new Error(`Unable to find environment variable for file command ${command}`);
     }
-    return function (source) { return source.lift.call(concat_1.concat.apply(void 0, [source].concat(observables))); };
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`Missing file at path: ${filePath}`);
+    }
+    fs.appendFileSync(filePath, `${utils_1.toCommandValue(message)}${os.EOL}`, {
+        encoding: 'utf8'
+    });
 }
-exports.concat = concat;
-//# sourceMappingURL=concat.js.map
+exports.issueCommand = issueCommand;
+//# sourceMappingURL=file-command.js.map
 
 /***/ }),
 /* 103 */,
@@ -3218,10 +3165,10 @@ var WindowSubscriber = (function (_super) {
         _this.openWindow();
         return _this;
     }
-    WindowSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    WindowSubscriber.prototype.notifyNext = function (_outerValue, _innerValue, _outerIndex, _innerIndex, innerSub) {
         this.openWindow(innerSub);
     };
-    WindowSubscriber.prototype.notifyError = function (error, innerSub) {
+    WindowSubscriber.prototype.notifyError = function (error) {
         this._error(error);
     };
     WindowSubscriber.prototype.notifyComplete = function (innerSub) {
@@ -3353,126 +3300,12 @@ exports.Timestamp = Timestamp;
 //# sourceMappingURL=timestamp.js.map
 
 /***/ }),
-/* 108 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const identity_1 = __webpack_require__(296);
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const NEVER_PROMISE = new Promise(() => { });
-function wrapPromiseWithIndex(promise, index) {
-    return promise.then(value => ({ value, index }));
-}
-class CombineLatestAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(sources, fn) {
-        super();
-        this._sources = sources;
-        this._fn = fn;
-    }
-    async *[Symbol.asyncIterator]() {
-        const fn = this._fn;
-        const length = this._sources.length;
-        const iterators = new Array(length);
-        const nexts = new Array(length);
-        let hasValueAll = false;
-        const values = new Array(length);
-        const hasValues = new Array(length);
-        let active = length;
-        hasValues.fill(false);
-        for (let i = 0; i < length; i++) {
-            const iterator = this._sources[i][Symbol.asyncIterator]();
-            iterators[i] = iterator;
-            nexts[i] = wrapPromiseWithIndex(iterator.next(), i);
-        }
-        while (active > 0) {
-            const next = Promise.race(nexts);
-            const { value: next$, index } = await next;
-            if (next$.done) {
-                nexts[index] = NEVER_PROMISE;
-                active--;
-            }
-            else {
-                values[index] = next$.value;
-                hasValues[index] = true;
-                const iterator$ = iterators[index];
-                nexts[index] = wrapPromiseWithIndex(iterator$.next(), index);
-                if (hasValueAll || (hasValueAll = hasValues.every(identity_1.identity))) {
-                    yield await fn(values);
-                }
-            }
-        }
-    }
-}
-exports.CombineLatestAsyncIterable = CombineLatestAsyncIterable;
-function combineLatest(...sources) {
-    let fn = (sources.shift() || identity_1.identityAsync);
-    if (fn && typeof fn !== 'function') {
-        sources.unshift(fn);
-        fn = identity_1.identityAsync;
-    }
-    return new CombineLatestAsyncIterable(sources, fn);
-}
-exports.combineLatest = combineLatest;
-
-//# sourceMappingURL=combinelatest.js.map
-
-
-/***/ }),
+/* 108 */,
 /* 109 */,
 /* 110 */,
 /* 111 */,
-/* 112 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const fromeventpattern_1 = __webpack_require__(343);
-function isNodeEventEmitter(obj) {
-    return !!obj && typeof obj.addListener === 'function' && typeof obj.removeListener === 'function';
-}
-function isEventTarget(obj) {
-    return (!!obj &&
-        typeof obj.addEventListener === 'function' &&
-        typeof obj.removeEventListener === 'function');
-}
-function fromEvent(obj, type, options) {
-    if (isEventTarget(obj)) {
-        const target = obj;
-        return fromeventpattern_1.fromEventPattern(h => target.addEventListener(type, h, options), h => target.removeEventListener(type, h, options));
-    }
-    else if (isNodeEventEmitter(obj)) {
-        const target = obj;
-        return fromeventpattern_1.fromEventPattern(h => target.addListener(type, h), h => target.removeListener(type, h));
-    }
-    else {
-        throw new TypeError('Unsupported event target');
-    }
-}
-exports.fromEvent = fromEvent;
-
-//# sourceMappingURL=fromevent.js.map
-
-
-/***/ }),
-/* 113 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function sleep(dueTime) {
-    return new Promise(res => setTimeout(res, dueTime));
-}
-exports.sleep = sleep;
-
-//# sourceMappingURL=_sleep.js.map
-
-
-/***/ }),
+/* 112 */,
+/* 113 */,
 /* 114 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -3725,62 +3558,9 @@ exports.SafeSubscriber = SafeSubscriber;
 //# sourceMappingURL=Subscriber.js.map
 
 /***/ }),
-/* 115 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-async function sum(source, selector = identity_1.identityAsync) {
-    let value = 0;
-    for await (const item of source) {
-        value += await selector(item);
-    }
-    return value;
-}
-exports.sum = sum;
-
-//# sourceMappingURL=sum.js.map
-
-
-/***/ }),
+/* 115 */,
 /* 116 */,
-/* 117 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * @ignore
- */
-function arrayIndexOf(array, item, comparer) {
-    for (let i = 0, len = array.length; i < len; i++) {
-        if (comparer(item, array[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-exports.arrayIndexOf = arrayIndexOf;
-/**
- * @ignore
- */
-async function arrayIndexOfAsync(array, item, comparer) {
-    for (let i = 0, len = array.length; i < len; i++) {
-        if (await comparer(item, array[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-exports.arrayIndexOfAsync = arrayIndexOfAsync;
-
-//# sourceMappingURL=arrayindexof.js.map
-
-
-/***/ }),
+/* 117 */,
 /* 118 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -3789,28 +3569,32 @@ exports.arrayIndexOfAsync = arrayIndexOfAsync;
 const os = __webpack_require__(87);
 
 const nameMap = new Map([
-	[19, 'Catalina'],
-	[18, 'Mojave'],
-	[17, 'High Sierra'],
-	[16, 'Sierra'],
-	[15, 'El Capitan'],
-	[14, 'Yosemite'],
-	[13, 'Mavericks'],
-	[12, 'Mountain Lion'],
-	[11, 'Lion'],
-	[10, 'Snow Leopard'],
-	[9, 'Leopard'],
-	[8, 'Tiger'],
-	[7, 'Panther'],
-	[6, 'Jaguar'],
-	[5, 'Puma']
+	[20, ['Big Sur', '11']],
+	[19, ['Catalina', '10.15']],
+	[18, ['Mojave', '10.14']],
+	[17, ['High Sierra', '10.13']],
+	[16, ['Sierra', '10.12']],
+	[15, ['El Capitan', '10.11']],
+	[14, ['Yosemite', '10.10']],
+	[13, ['Mavericks', '10.9']],
+	[12, ['Mountain Lion', '10.8']],
+	[11, ['Lion', '10.7']],
+	[10, ['Snow Leopard', '10.6']],
+	[9, ['Leopard', '10.5']],
+	[8, ['Tiger', '10.4']],
+	[7, ['Panther', '10.3']],
+	[6, ['Jaguar', '10.2']],
+	[5, ['Puma', '10.1']]
 ]);
 
 const macosRelease = release => {
 	release = Number((release || os.release()).split('.')[0]);
+
+	const [name, version] = nameMap.get(release);
+
 	return {
-		name: nameMap.get(release),
-		version: '10.' + (release - 4)
+		name,
+		version
 	};
 };
 
@@ -3820,33 +3604,28 @@ module.exports.default = macosRelease;
 
 
 /***/ }),
-/* 119 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function toArray(source) {
-    const results = [];
-    for await (const item of source) {
-        results.push(item);
-    }
-    return results;
-}
-exports.toArray = toArray;
-
-//# sourceMappingURL=toarray.js.map
-
-
-/***/ }),
+/* 119 */,
 /* 120 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sequenceEqual = void 0;
 const comparer_1 = __webpack_require__(492);
-function sequenceEqual(source, other, comparer = comparer_1.comparer) {
+/**
+ * Determines whether two sequences are equal by comparing the elements pairwise.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source First iterable sequence to compare.
+ * @param {Iterable<T>} other Second iterable sequence to compare.
+ * @param {SequencEqualOptions<T>} [options] The sequence equal options which include an optional comparer and optional abort signal.
+ * @returns {boolean} A promise which indicates whether both sequences are of equal length and their
+ * corresponding elements are equal.
+ */
+function sequenceEqual(source, other, options) {
+    const { ['comparer']: comparer = comparer_1.comparer } = options || {};
     const it1 = source[Symbol.iterator]();
     const it2 = other[Symbol.iterator]();
     let next1;
@@ -3881,12 +3660,7 @@ module.exports = major
 // hoisted class for cyclic dependency
 class Range {
   constructor (range, options) {
-    if (!options || typeof options !== 'object') {
-      options = {
-        loose: !!options,
-        includePrerelease: false
-      }
-    }
+    options = parseOptions(options)
 
     if (range instanceof Range) {
       if (
@@ -3926,6 +3700,24 @@ class Range {
       throw new TypeError(`Invalid SemVer Range: ${range}`)
     }
 
+    // if we have any that are not the null set, throw out null sets.
+    if (this.set.length > 1) {
+      // keep the first one, in case they're all null sets
+      const first = this.set[0]
+      this.set = this.set.filter(c => !isNullSet(c[0]))
+      if (this.set.length === 0)
+        this.set = [first]
+      else if (this.set.length > 1) {
+        // if we have any that are *, then the range is just *
+        for (const c of this.set) {
+          if (c.length === 1 && isAny(c[0])) {
+            this.set = [c]
+            break
+          }
+        }
+      }
+    }
+
     this.format()
   }
 
@@ -3944,8 +3736,17 @@ class Range {
   }
 
   parseRange (range) {
-    const loose = this.options.loose
     range = range.trim()
+
+    // memoize range parsing for performance.
+    // this is a very hot path, and fully deterministic.
+    const memoOpts = Object.keys(this.options).join(',')
+    const memoKey = `parseRange:${memoOpts}:${range}`
+    const cached = cache.get(memoKey)
+    if (cached)
+      return cached
+
+    const loose = this.options.loose
     // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
     const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE]
     range = range.replace(hr, hyphenReplace(this.options.includePrerelease))
@@ -3967,15 +3768,33 @@ class Range {
     // ready to be split into comparators.
 
     const compRe = loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
-    return range
+    const rangeList = range
       .split(' ')
       .map(comp => parseComparator(comp, this.options))
       .join(' ')
       .split(/\s+/)
+      // >=0.0.0 is equivalent to *
       .map(comp => replaceGTE0(comp, this.options))
       // in loose mode, throw out any that are not valid comparators
       .filter(this.options.loose ? comp => !!comp.match(compRe) : () => true)
       .map(comp => new Comparator(comp, this.options))
+
+    // if any comparators are the null set, then replace with JUST null set
+    // if more than one comparator, remove any * comparators
+    // also, don't include the same comparator more than once
+    const l = rangeList.length
+    const rangeMap = new Map()
+    for (const comp of rangeList) {
+      if (isNullSet(comp))
+        return [comp]
+      rangeMap.set(comp.value, comp)
+    }
+    if (rangeMap.size > 1 && rangeMap.has(''))
+      rangeMap.delete('')
+
+    const result = [...rangeMap.values()]
+    cache.set(memoKey, result)
+    return result
   }
 
   intersects (range, options) {
@@ -4024,6 +3843,10 @@ class Range {
 }
 module.exports = Range
 
+const LRU = __webpack_require__(702)
+const cache = new LRU({ max: 1000 })
+
+const parseOptions = __webpack_require__(143)
 const Comparator = __webpack_require__(174)
 const debug = __webpack_require__(579)
 const SemVer = __webpack_require__(65)
@@ -4034,6 +3857,9 @@ const {
   tildeTrimReplace,
   caretTrimReplace
 } = __webpack_require__(906)
+
+const isNullSet = c => c.value === '<0.0.0-0'
+const isAny = c => c.value === ''
 
 // take a set of comparators and determine whether there
 // exists a version which can satisfy it
@@ -4782,10 +4608,21 @@ exports.debug = debug; // for test
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function every(source, predicate) {
+exports.every = void 0;
+/**
+ * Determines whether all elements of an iterable sequence satisfy a condition.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source An iterable sequence whose elements to apply the predicate to.
+ * @param {FindOptions<T>} options The options for a predicate for filtering, thisArg for binding and AbortSignal for cancellation.
+ * @returns {boolean} A boolean determining whether all elements in the source sequence pass the test in the specified predicate.
+ */
+function every(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate } = options;
     let i = 0;
     for (const item of source) {
-        if (!predicate(item, i++)) {
+        if (!predicate.call(thisArg, item, i++)) {
             return false;
         }
     }
@@ -4797,7 +4634,23 @@ exports.every = every;
 
 
 /***/ }),
-/* 143 */,
+/* 143 */
+/***/ (function(module) {
+
+// parse out just the options we care about so we always get a consistent
+// obj with keys in a consistent order.
+const opts = ['includePrerelease', 'loose', 'rtl']
+const parseOptions = options =>
+  !options ? {}
+  : typeof options !== 'object' ? { loose: true }
+  : opts.filter(k => options[k]).reduce((options, k) => {
+    options[k] = true
+    return options
+  }, {})
+module.exports = parseOptions
+
+
+/***/ }),
 /* 144 */,
 /* 145 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
@@ -4882,15 +4735,16 @@ exports.ObjectUnsubscribedError = ObjectUnsubscribedErrorImpl;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scanRight = exports.ScanRightIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const toarray_1 = __webpack_require__(274);
 class ScanRightIterable extends iterablex_1.IterableX {
-    constructor(source, fn, seed) {
+    constructor(source, options) {
         super();
         this._source = source;
-        this._fn = fn;
-        this._hasSeed = seed.length === 1;
-        this._seed = seed[0];
+        this._fn = options['callback'];
+        this._hasSeed = options.hasOwnProperty('seed');
+        this._seed = options['seed'];
     }
     *[Symbol.iterator]() {
         let hasValue = false;
@@ -4910,9 +4764,16 @@ class ScanRightIterable extends iterablex_1.IterableX {
     }
 }
 exports.ScanRightIterable = ScanRightIterable;
-function scanRight(accumulator, ...seed) {
+function scanRight(optionsOrAccumulator, seed) {
+    const options = 
+    // eslint-disable-next-line no-nested-ternary
+    typeof optionsOrAccumulator === 'function'
+        ? arguments.length > 1
+            ? { 'callback': optionsOrAccumulator, 'seed': seed }
+            : { 'callback': optionsOrAccumulator }
+        : optionsOrAccumulator;
     return function scanRightOperatorFunction(source) {
-        return new ScanRightIterable(source, accumulator, seed);
+        return new ScanRightIterable(source, options);
     };
 }
 exports.scanRight = scanRight;
@@ -4921,26 +4782,7 @@ exports.scanRight = scanRight;
 
 
 /***/ }),
-/* 148 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-function sum(source, fn = identity_1.identity) {
-    let value = 0;
-    for (const item of source) {
-        value += fn(item);
-    }
-    return value;
-}
-exports.sum = sum;
-
-//# sourceMappingURL=sum.js.map
-
-
-/***/ }),
+/* 148 */,
 /* 149 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -4949,7 +4791,8 @@ exports.sum = sum;
 Object.defineProperty(exports, "__esModule", { value: true });
 var AsapAction_1 = __webpack_require__(232);
 var AsapScheduler_1 = __webpack_require__(0);
-exports.asap = new AsapScheduler_1.AsapScheduler(AsapAction_1.AsapAction);
+exports.asapScheduler = new AsapScheduler_1.AsapScheduler(AsapAction_1.AsapAction);
+exports.asap = exports.asapScheduler;
 //# sourceMappingURL=asap.js.map
 
 /***/ }),
@@ -5008,9 +4851,7 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var from_1 = __webpack_require__(997);
 var isArray_1 = __webpack_require__(495);
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function onErrorResumeNext() {
     var nextSources = [];
     for (var _i = 0; _i < arguments.length; _i++) {
@@ -5027,12 +4868,12 @@ function onErrorResumeNextStatic() {
     for (var _i = 0; _i < arguments.length; _i++) {
         nextSources[_i] = arguments[_i];
     }
-    var source = null;
+    var source = undefined;
     if (nextSources.length === 1 && isArray_1.isArray(nextSources[0])) {
         nextSources = nextSources[0];
     }
     source = nextSources.shift();
-    return from_1.from(source, null).lift(new OnErrorResumeNextOperator(nextSources));
+    return from_1.from(source).lift(new OnErrorResumeNextOperator(nextSources));
 }
 exports.onErrorResumeNextStatic = onErrorResumeNextStatic;
 var OnErrorResumeNextOperator = (function () {
@@ -5052,10 +4893,10 @@ var OnErrorResumeNextSubscriber = (function (_super) {
         _this.nextSources = nextSources;
         return _this;
     }
-    OnErrorResumeNextSubscriber.prototype.notifyError = function (error, innerSub) {
+    OnErrorResumeNextSubscriber.prototype.notifyError = function () {
         this.subscribeToNextSource();
     };
-    OnErrorResumeNextSubscriber.prototype.notifyComplete = function (innerSub) {
+    OnErrorResumeNextSubscriber.prototype.notifyComplete = function () {
         this.subscribeToNextSource();
     };
     OnErrorResumeNextSubscriber.prototype._error = function (err) {
@@ -5069,10 +4910,10 @@ var OnErrorResumeNextSubscriber = (function (_super) {
     OnErrorResumeNextSubscriber.prototype.subscribeToNextSource = function () {
         var next = this.nextSources.shift();
         if (!!next) {
-            var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, undefined, undefined);
+            var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
             var destination = this.destination;
             destination.add(innerSubscriber);
-            var innerSubscription = subscribeToResult_1.subscribeToResult(this, next, undefined, undefined, innerSubscriber);
+            var innerSubscription = innerSubscribe_1.innerSubscribe(next, innerSubscriber);
             if (innerSubscription !== innerSubscriber) {
                 destination.add(innerSubscription);
             }
@@ -5082,31 +4923,44 @@ var OnErrorResumeNextSubscriber = (function (_super) {
         }
     };
     return OnErrorResumeNextSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=onErrorResumeNext.js.map
 
 /***/ }),
 /* 156 */,
 /* 157 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const from_1 = __webpack_require__(434);
-function pipe(source, ...operations) {
-    if (operations.length === 0) {
-        return source instanceof asynciterablex_1.AsyncIterableX ? source : from_1.from(source);
+exports.arrayIndexOfAsync = exports.arrayIndexOf = void 0;
+/**
+ * @ignore
+ */
+function arrayIndexOf(array, item, comparer) {
+    for (let i = 0, len = array.length; i < len; i++) {
+        if (comparer(item, array[i])) {
+            return i;
+        }
     }
-    const piped = (input) => {
-        return operations.reduce((prev, fn) => fn(prev), input);
-    };
-    return piped(source);
+    return -1;
 }
-exports.pipe = pipe;
+exports.arrayIndexOf = arrayIndexOf;
+/**
+ * @ignore
+ */
+async function arrayIndexOfAsync(array, item, comparer) {
+    for (let i = 0, len = array.length; i < len; i++) {
+        if (await comparer(item, array[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+exports.arrayIndexOfAsync = arrayIndexOfAsync;
 
-//# sourceMappingURL=pipe.js.map
+//# sourceMappingURL=arrayindexof.js.map
 
 
 /***/ }),
@@ -5448,6 +5302,7 @@ const minVersion = (range, loose) => {
   for (let i = 0; i < range.set.length; ++i) {
     const comparators = range.set[i]
 
+    let setMin = null
     comparators.forEach((comparator) => {
       // Clone to avoid manipulating the comparator's semver object.
       const compver = new SemVer(comparator.semver.version)
@@ -5462,8 +5317,8 @@ const minVersion = (range, loose) => {
           /* fallthrough */
         case '':
         case '>=':
-          if (!minver || gt(minver, compver)) {
-            minver = compver
+          if (!setMin || gt(compver, setMin)) {
+            setMin = compver
           }
           break
         case '<':
@@ -5475,6 +5330,8 @@ const minVersion = (range, loose) => {
           throw new Error(`Unexpected operation: ${comparator.operator}`)
       }
     })
+    if (setMin && (!minver || gt(minver, setMin)))
+      minver = setMin
   }
 
   if (minver && range.test(minver)) {
@@ -5544,6 +5401,7 @@ exports.SubjectSubscription = SubjectSubscription;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports._initialize = exports.FromIterable = exports.from = void 0;
 const identity_1 = __webpack_require__(296);
 const bindcallback_1 = __webpack_require__(270);
 const isiterable_1 = __webpack_require__(35);
@@ -5597,7 +5455,7 @@ exports._initialize = _initialize;
 /* 167 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const gte = (a, b, loose) => compare(a, b, loose) >= 0
 module.exports = gte
 
@@ -5657,15 +5515,30 @@ module.exports = opts => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function single(source, predicate = () => true) {
+exports.single = void 0;
+/**
+ * Returns the only element of an iterable sequence that matches the predicate if specified,
+ * or undefined if no such element exists; this method reports an exception if there is more
+ * than one element in the iterable sequence.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {AsyncIterable<T>} source Source iterable sequence.
+ * @param {OptionalFindOptions<T>} [options] The optional options which includes a predicate for filtering,
+ * and thisArg for predicate binding.
+ * @returns {(T | undefined)} The single element in the iterable sequence that satisfies
+ * the condition in the predicate, or undefined if no such element exists.
+ */
+function single(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate = () => true } = options || {};
     let result;
     let hasResult = false;
     let i = 0;
     for (const item of source) {
-        if (hasResult && predicate(item, i++)) {
+        if (hasResult && predicate.call(thisArg, item, i++)) {
             throw new Error('More than one element was found');
         }
-        if (predicate(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             result = item;
             hasResult = true;
         }
@@ -5737,12 +5610,7 @@ class Comparator {
     return ANY
   }
   constructor (comp, options) {
-    if (!options || typeof options !== 'object') {
-      options = {
-        loose: !!options,
-        includePrerelease: false
-      }
-    }
+    options = parseOptions(options)
 
     if (comp instanceof Comparator) {
       if (comp.loose === !!options.loose) {
@@ -5864,6 +5732,7 @@ class Comparator {
 
 module.exports = Comparator
 
+const parseOptions = __webpack_require__(143)
 const {re, t} = __webpack_require__(906)
 const cmp = __webpack_require__(797)
 const debug = __webpack_require__(579)
@@ -5956,6 +5825,7 @@ module.exports = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.startWith = exports.StartWithIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class StartWithIterable extends iterablex_1.IterableX {
     constructor(source, args) {
@@ -5973,6 +5843,14 @@ class StartWithIterable extends iterablex_1.IterableX {
     }
 }
 exports.StartWithIterable = StartWithIterable;
+/**
+ * Prepend a value to an iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {...TSource[]} args Elements to prepend to the specified sequence.
+ * @returns {MonoTypeOperatorFunction<TSource>} The source sequence prepended with the specified values.
+ */
 function startWith(...args) {
     return function startWithOperatorFunction(source) {
         return new StartWithIterable(source, args);
@@ -6247,6 +6125,7 @@ exports.toArray = toArray;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toInteger = void 0;
 /**
  * @ignore
  */
@@ -6377,7 +6256,35 @@ exports.subscribeToArray = function (array) { return function (subscriber) {
 
 /***/ }),
 /* 217 */,
-/* 218 */,
+/* 218 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.maxBy = void 0;
+const _extremaby_1 = __webpack_require__(825);
+const comparer_1 = __webpack_require__(492);
+/**
+ * Returns the elements in an iterable sequence with the maximum key value.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TKey The type of the key computed for each element in the source sequence.
+ * @param {Iterable<TSource>} source The source to get the maximum by.
+ * @param {ExtremaOptions<TSource, TKey>} [options] The options which include an optional comparer.
+ * @returns {TSource[]} A list of zero or more elements that have a maximum key value.
+ */
+function maxBy(source, options) {
+    const { ['comparer']: comparer = comparer_1.equalityComparer, ['selector']: selector } = options || {};
+    return _extremaby_1.extremaBy(source, selector, comparer);
+}
+exports.maxBy = maxBy;
+
+//# sourceMappingURL=maxby.js.map
+
+
+/***/ }),
 /* 219 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -6430,39 +6337,90 @@ var SubscribeOnOperator = (function () {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class RepeatAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(source, count) {
+exports.memoize = void 0;
+const iterablex_1 = __webpack_require__(954);
+const _refcountlist_1 = __webpack_require__(241);
+const create_1 = __webpack_require__(228);
+class MemoizeBuffer extends iterablex_1.IterableX {
+    constructor(source, buffer) {
         super();
+        this._stopped = false;
         this._source = source;
-        this._count = count;
+        this._buffer = buffer;
     }
-    async *[Symbol.asyncIterator]() {
-        if (this._count === -1) {
+    // eslint-disable-next-line complexity
+    *[Symbol.iterator]() {
+        let i = 0;
+        try {
             while (1) {
-                for await (const item of this._source) {
-                    yield item;
+                let hasValue = false;
+                let current = {};
+                if (i >= this._buffer.count) {
+                    if (!this._stopped) {
+                        try {
+                            const next = this._source.next();
+                            hasValue = !next.done;
+                            // eslint-disable-next-line max-depth
+                            if (hasValue) {
+                                current = next.value;
+                            }
+                        }
+                        catch (e) {
+                            this._error = e;
+                            this._stopped = true;
+                        }
+                    }
+                    if (this._stopped) {
+                        throw this._error;
+                    }
+                    if (hasValue) {
+                        this._buffer.push(current);
+                    }
                 }
+                else {
+                    hasValue = true;
+                }
+                if (hasValue) {
+                    yield this._buffer.get(i);
+                }
+                else {
+                    break;
+                }
+                i++;
             }
         }
-        else {
-            for (let i = 0; i < this._count; i++) {
-                for await (const item of this._source) {
-                    yield item;
-                }
-            }
+        finally {
+            this._buffer.done();
         }
     }
 }
-exports.RepeatAsyncIterable = RepeatAsyncIterable;
-function repeat(count = -1) {
-    return function repeatOperatorFunction(source) {
-        return new RepeatAsyncIterable(source, count);
+/**
+ * Memoizes the source sequence within a selector function where a specified number of iterators can get access
+ * to all of the sequence's elements without causing multiple iterations over the source.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @template TResult Result sequence element type.
+ * @param {number} [readerCount=-1] Number of iterators that can access the underlying buffer. Once every
+ * iterator has obtained an element from the buffer, the element is removed from the buffer.
+ * @param {(value: Iterable<TSource>) => Iterable<TResult>} [selector] Selector function with memoized access
+ * to the source sequence for a specified number of iterators.
+ * @returns {(OperatorFunction<TSource, TSource | TResult>)} Sequence resulting from applying the selector function to the
+ * memoized view over the source sequence.
+ */
+function memoize(readerCount = -1, selector) {
+    return function memoizeOperatorFunction(source) {
+        if (!selector) {
+            return readerCount === -1
+                ? new MemoizeBuffer(source[Symbol.iterator](), new _refcountlist_1.MaxRefCountList())
+                : new MemoizeBuffer(source[Symbol.iterator](), new _refcountlist_1.RefCountList(readerCount));
+        }
+        return create_1.create(() => selector(memoize(readerCount)(source))[Symbol.iterator]());
     };
 }
-exports.repeat = repeat;
+exports.memoize = memoize;
 
-//# sourceMappingURL=repeat.js.map
+//# sourceMappingURL=memoize.js.map
 
 
 /***/ }),
@@ -6528,6 +6486,7 @@ exports.QueueAction = QueueAction;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.create = void 0;
 const iterablex_1 = __webpack_require__(954);
 class AnonymousIterable extends iterablex_1.IterableX {
     constructor(fn) {
@@ -6539,9 +6498,12 @@ class AnonymousIterable extends iterablex_1.IterableX {
     }
 }
 /**
- * Creates an enumerable sequence based on an enumerator factory function.
- * @param {function(): Iterator<T>} getIterator The iterator factory function.
- * @return {Iterable<T>} Sequence that will invoke the iterator factory upon a call to [Symbol.iterator]().
+ * Creates a new iterable using the specified function implementing the members of AsyncIterable
+ *
+ * @export
+ * @template T The type of the elements returned by the iterable sequence.
+ * @param {(() => Iterator<T>)} fn The function that creates the [Symbol.iterator]() method
+ * @returns {IterableX<T>} A new iterable instance.
  */
 function create(getIterator) {
     return new AnonymousIterable(getIterator);
@@ -6612,7 +6574,8 @@ var SkipSubscriber = (function (_super) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var AnimationFrameAction_1 = __webpack_require__(587);
 var AnimationFrameScheduler_1 = __webpack_require__(202);
-exports.animationFrame = new AnimationFrameScheduler_1.AnimationFrameScheduler(AnimationFrameAction_1.AnimationFrameAction);
+exports.animationFrameScheduler = new AnimationFrameScheduler_1.AnimationFrameScheduler(AnimationFrameAction_1.AnimationFrameAction);
+exports.animationFrame = exports.animationFrameScheduler;
 //# sourceMappingURL=animationFrame.js.map
 
 /***/ }),
@@ -6697,6 +6660,7 @@ exports.switchMapTo = switchMapTo;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.RefCountList = exports.MaxRefCountList = void 0;
 /**
  * @ignore
  */
@@ -6766,36 +6730,7 @@ exports.RefCountList = RefCountList;
 
 /***/ }),
 /* 242 */,
-/* 243 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-async function min(source, selector = identity_1.identityAsync) {
-    let atleastOnce = false;
-    let value = Infinity;
-    for await (const item of source) {
-        if (!atleastOnce) {
-            atleastOnce = true;
-        }
-        const x = await selector(item);
-        if (x < value) {
-            value = x;
-        }
-    }
-    if (!atleastOnce) {
-        throw new Error('Sequence contains no elements');
-    }
-    return value;
-}
-exports.min = min;
-
-//# sourceMappingURL=min.js.map
-
-
-/***/ }),
+/* 243 */,
 /* 244 */,
 /* 245 */,
 /* 246 */
@@ -6817,11 +6752,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var subscribeToResult_1 = __webpack_require__(591);
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
 var map_1 = __webpack_require__(802);
 var from_1 = __webpack_require__(997);
+var innerSubscribe_1 = __webpack_require__(938);
 function mergeMap(project, resultSelector, concurrent) {
     if (concurrent === void 0) { concurrent = Number.POSITIVE_INFINITY; }
     if (typeof resultSelector === 'function') {
@@ -6877,13 +6810,13 @@ var MergeMapSubscriber = (function (_super) {
             return;
         }
         this.active++;
-        this._innerSub(result, value, index);
+        this._innerSub(result);
     };
-    MergeMapSubscriber.prototype._innerSub = function (ish, value, index) {
-        var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, value, index);
+    MergeMapSubscriber.prototype._innerSub = function (ish) {
+        var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
         var destination = this.destination;
         destination.add(innerSubscriber);
-        var innerSubscription = subscribeToResult_1.subscribeToResult(this, ish, undefined, undefined, innerSubscriber);
+        var innerSubscription = innerSubscribe_1.innerSubscribe(ish, innerSubscriber);
         if (innerSubscription !== innerSubscriber) {
             destination.add(innerSubscription);
         }
@@ -6895,12 +6828,11 @@ var MergeMapSubscriber = (function (_super) {
         }
         this.unsubscribe();
     };
-    MergeMapSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    MergeMapSubscriber.prototype.notifyNext = function (innerValue) {
         this.destination.next(innerValue);
     };
-    MergeMapSubscriber.prototype.notifyComplete = function (innerSub) {
+    MergeMapSubscriber.prototype.notifyComplete = function () {
         var buffer = this.buffer;
-        this.remove(innerSub);
         this.active--;
         if (buffer.length > 0) {
             this._next(buffer.shift());
@@ -6910,36 +6842,15 @@ var MergeMapSubscriber = (function (_super) {
         }
     };
     return MergeMapSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 exports.MergeMapSubscriber = MergeMapSubscriber;
+exports.flatMap = mergeMap;
 //# sourceMappingURL=mergeMap.js.map
 
 /***/ }),
 /* 247 */,
 /* 248 */,
-/* 249 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const bindcallback_1 = __webpack_require__(270);
-async function find(source, predicate, thisArg) {
-    const fn = bindcallback_1.bindCallback(predicate, thisArg, 2);
-    let i = 0;
-    for await (const item of source) {
-        if (await fn(item, i++)) {
-            return item;
-        }
-    }
-    return undefined;
-}
-exports.find = find;
-
-//# sourceMappingURL=find.js.map
-
-
-/***/ }),
+/* 249 */,
 /* 250 */,
 /* 251 */,
 /* 252 */,
@@ -7127,11 +7038,11 @@ var WithLatestFromSubscriber = (function (_super) {
         }
         for (var i = 0; i < len; i++) {
             var observable = observables[i];
-            _this.add(subscribeToResult_1.subscribeToResult(_this, observable, observable, i));
+            _this.add(subscribeToResult_1.subscribeToResult(_this, observable, undefined, i));
         }
         return _this;
     }
-    WithLatestFromSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    WithLatestFromSubscriber.prototype.notifyNext = function (_outerValue, innerValue, outerIndex) {
         this.values[outerIndex] = innerValue;
         var toRespond = this.toRespond;
         if (toRespond.length > 0) {
@@ -7176,8 +7087,9 @@ var WithLatestFromSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.except = exports.ExceptIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const arrayindexof_1 = __webpack_require__(117);
+const arrayindexof_1 = __webpack_require__(157);
 const comparer_1 = __webpack_require__(492);
 class ExceptIterable extends iterablex_1.IterableX {
     constructor(first, second, comparer) {
@@ -7200,6 +7112,17 @@ class ExceptIterable extends iterablex_1.IterableX {
     }
 }
 exports.ExceptIterable = ExceptIterable;
+/**
+ *  Produces the set difference of two iterable sequences by using the specified equality comparer to compare values.
+ *
+ * @export
+ * @template TSource The type of the elements of the input sequences.
+ * @param {Iterable<TSource>} second An iterable sequence whose elements that also occur in the
+ * operator sequence will cause those elements to be removed from the returned sequence.
+ * @param {((x: TSource, y: TSource) => boolean} [comparer=defaultComparer] An equality comparer to compare values
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns a sequence that contains the set
+ * difference of the elements of two sequences.
+ */
 function except(second, comparer = comparer_1.comparer) {
     return function exceptOperatorFunction(first) {
         return new ExceptIterable(first, second, comparer);
@@ -7411,6 +7334,9 @@ class Context {
         this.workflow = process.env.GITHUB_WORKFLOW;
         this.action = process.env.GITHUB_ACTION;
         this.actor = process.env.GITHUB_ACTOR;
+        this.job = process.env.GITHUB_JOB;
+        this.runNumber = parseInt(process.env.GITHUB_RUN_NUMBER, 10);
+        this.runId = parseInt(process.env.GITHUB_RUN_ID, 10);
     }
     get issue() {
         const payload = this.payload;
@@ -7437,7 +7363,25 @@ exports.Context = Context;
 /* 263 */,
 /* 264 */,
 /* 265 */,
-/* 266 */,
+/* 266 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.zipWith = void 0;
+const zip_1 = __webpack_require__(785);
+function zipWith(...sources) {
+    return function zipWithOperatorFunction(source) {
+        return new zip_1.ZipIterable([source, ...sources]);
+    };
+}
+exports.zipWith = zipWith;
+
+//# sourceMappingURL=zipwith.js.map
+
+
+/***/ }),
 /* 267 */,
 /* 268 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -7460,8 +7404,7 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var async_1 = __webpack_require__(411);
 var isDate_1 = __webpack_require__(917);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function timeoutWith(due, withObservable, scheduler) {
     if (scheduler === void 0) { scheduler = async_1.async; }
     return function (source) {
@@ -7491,14 +7434,13 @@ var TimeoutWithSubscriber = (function (_super) {
         _this.waitFor = waitFor;
         _this.withObservable = withObservable;
         _this.scheduler = scheduler;
-        _this.action = null;
         _this.scheduleTimeout();
         return _this;
     }
     TimeoutWithSubscriber.dispatchTimeout = function (subscriber) {
         var withObservable = subscriber.withObservable;
         subscriber._unsubscribeAndRecycle();
-        subscriber.add(subscribeToResult_1.subscribeToResult(subscriber, withObservable));
+        subscriber.add(innerSubscribe_1.innerSubscribe(withObservable, new innerSubscribe_1.SimpleInnerSubscriber(subscriber)));
     };
     TimeoutWithSubscriber.prototype.scheduleTimeout = function () {
         var action = this.action;
@@ -7516,12 +7458,12 @@ var TimeoutWithSubscriber = (function (_super) {
         _super.prototype._next.call(this, value);
     };
     TimeoutWithSubscriber.prototype._unsubscribe = function () {
-        this.action = null;
+        this.action = undefined;
         this.scheduler = null;
         this.withObservable = null;
     };
     return TimeoutWithSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=timeoutWith.js.map
 
 /***/ }),
@@ -7532,6 +7474,7 @@ var TimeoutWithSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.bindCallback = void 0;
 /**
  * @ignore
  */
@@ -7570,96 +7513,22 @@ exports.bindCallback = bindCallback;
 /***/ }),
 /* 271 */,
 /* 272 */,
-/* 273 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-const _refcountlist_1 = __webpack_require__(241);
-const create_1 = __webpack_require__(228);
-class PublishedBuffer extends iterablex_1.IterableX {
-    constructor(source) {
-        super();
-        this._stopped = false;
-        this._source = source;
-        this._buffer = new _refcountlist_1.RefCountList(0);
-    }
-    // eslint-disable-next-line complexity
-    *_getIterable(i) {
-        try {
-            while (1) {
-                let hasValue = false;
-                let current = {};
-                if (i >= this._buffer.count) {
-                    if (!this._stopped) {
-                        try {
-                            const next = this._source.next();
-                            hasValue = !next.done;
-                            // eslint-disable-next-line max-depth
-                            if (hasValue) {
-                                current = next.value;
-                            }
-                        }
-                        catch (e) {
-                            this._error = e;
-                            this._stopped = true;
-                        }
-                    }
-                    if (this._stopped) {
-                        if (this._error) {
-                            throw this._error;
-                        }
-                        else {
-                            break;
-                        }
-                    }
-                    if (hasValue) {
-                        this._buffer.push(current);
-                    }
-                }
-                else {
-                    hasValue = true;
-                }
-                if (hasValue) {
-                    yield this._buffer.get(i);
-                }
-                else {
-                    break;
-                }
-                // eslint-disable-next-line no-param-reassign
-                i++;
-            }
-        }
-        finally {
-            this._buffer.done();
-        }
-    }
-    [Symbol.iterator]() {
-        this._buffer.readerCount++;
-        return this._getIterable(this._buffer.count)[Symbol.iterator]();
-    }
-}
-function publish(selector) {
-    return function publishOperatorFunction(source) {
-        return selector
-            ? create_1.create(() => selector(publish()(source))[Symbol.iterator]())
-            : new PublishedBuffer(source[Symbol.iterator]());
-    };
-}
-exports.publish = publish;
-
-//# sourceMappingURL=publish.js.map
-
-
-/***/ }),
+/* 273 */,
 /* 274 */
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toArray = void 0;
+/**
+ * Converts an existing iterable to anarray of values.
+ *
+ * @export
+ * @template TSource The type of elements in the source sequence.
+ * @param {Iterable<TSource>} source The source sequence to convert to an array.
+ * @returns {TSource[]} All the items from the source sequence as an array.
+ */
 function toArray(source) {
     const results = [];
     for (const item of source) {
@@ -7673,7 +7542,36 @@ exports.toArray = toArray;
 
 
 /***/ }),
-/* 275 */,
+/* 275 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.minBy = void 0;
+const _extremaby_1 = __webpack_require__(825);
+const comparer_1 = __webpack_require__(492);
+/**
+ * Returns the elements in an terable sequence with the minimum key value.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TKey The type of the key computed for each element in the source sequence.
+ * @param {Iterable<TSource>} source An async-iterable sequence to get the minimum elements for.
+ * @param {ExtremaOptions<TSource, TKey>} [options] The options which include an optional comparer.
+ * @returns {TSource[]} A list of zero or more elements that have a minimum key value.
+ */
+function minBy(source, options) {
+    const { ['comparer']: comparer = comparer_1.equalityComparer, ['selector']: selector } = options || {};
+    const newComparer = (key, minValue) => -comparer(key, minValue);
+    return _extremaby_1.extremaBy(source, selector, newComparer);
+}
+exports.minBy = minBy;
+
+//# sourceMappingURL=minby.js.map
+
+
+/***/ }),
 /* 276 */,
 /* 277 */,
 /* 278 */,
@@ -7754,8 +7652,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function audit(durationSelector) {
     return function auditOperatorFunction(source) {
         return source.lift(new AuditOperator(durationSelector));
@@ -7791,7 +7688,7 @@ var AuditSubscriber = (function (_super) {
             catch (err) {
                 return this.destination.error(err);
             }
-            var innerSubscription = subscribeToResult_1.subscribeToResult(this, duration);
+            var innerSubscription = innerSubscribe_1.innerSubscribe(duration, new innerSubscribe_1.SimpleInnerSubscriber(this));
             if (!innerSubscription || innerSubscription.closed) {
                 this.clearThrottle();
             }
@@ -7804,23 +7701,23 @@ var AuditSubscriber = (function (_super) {
         var _a = this, value = _a.value, hasValue = _a.hasValue, throttled = _a.throttled;
         if (throttled) {
             this.remove(throttled);
-            this.throttled = null;
+            this.throttled = undefined;
             throttled.unsubscribe();
         }
         if (hasValue) {
-            this.value = null;
+            this.value = undefined;
             this.hasValue = false;
             this.destination.next(value);
         }
     };
-    AuditSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex) {
+    AuditSubscriber.prototype.notifyNext = function () {
         this.clearThrottle();
     };
     AuditSubscriber.prototype.notifyComplete = function () {
         this.clearThrottle();
     };
     return AuditSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=audit.js.map
 
 /***/ }),
@@ -7843,52 +7740,14 @@ exports.auditTime = auditTime;
 
 /***/ }),
 /* 294 */,
-/* 295 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterable_1 = __webpack_require__(555);
-const bindcallback_1 = __webpack_require__(270);
-class FlatMapAsyncIterable extends asynciterable_1.AsyncIterableX {
-    constructor(source, selector) {
-        super();
-        this._source = source;
-        this._selector = selector;
-    }
-    async *[Symbol.asyncIterator]() {
-        for await (const outer of this._source) {
-            for await (const inner of this._selector(outer)) {
-                yield inner;
-            }
-        }
-    }
-}
-/**
- * Projects each element of a sequence to a potentially async iterable and flattens the
- * resulting sequences into one sequence.
- * @param {Iterable<T | Promise<T>> | AsyncIterable<T>} source Source sequence
- * @param {function:(value: T): Iterable<R | Promise<R>> | AsyncIterable<R>} selector A transform function to apply to each element.
- * @param {Object} [thisArg] An optional "this" binding for the selector function.
- * @returns {AsyncIterable<R>} An async iterable whose elements are the result of invoking the one-to-many
- * transform function on each element of the input sequence.
- */
-function flatMapAsync(source, selector, thisArg) {
-    return new FlatMapAsyncIterable(source, bindcallback_1.bindCallback(selector, thisArg, 1));
-}
-exports.flatMapAsync = flatMapAsync;
-
-//# sourceMappingURL=flatmapasync.js.map
-
-
-/***/ }),
+/* 295 */,
 /* 296 */
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.identityAsync = exports.identity = void 0;
 /**
  * @ignore
  */
@@ -7938,7 +7797,7 @@ exports.scheduleObservable = scheduleObservable;
 /* 298 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const eq = (a, b, loose) => compare(a, b, loose) === 0
 module.exports = eq
 
@@ -7952,7 +7811,7 @@ module.exports = eq
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
-const VERSION = "2.2.1";
+const VERSION = "2.2.3";
 
 /**
  * Some “list” response that can be paginated have a different response structure
@@ -8081,29 +7940,7 @@ exports.paginateRest = paginateRest;
 
 
 /***/ }),
-/* 300 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const bindcallback_1 = __webpack_require__(270);
-async function findIndex(source, predicate, thisArg) {
-    const fn = bindcallback_1.bindCallback(predicate, thisArg, 2);
-    let i = 0;
-    for await (const item of source) {
-        if (await fn(item, i++)) {
-            return i;
-        }
-    }
-    return -1;
-}
-exports.findIndex = findIndex;
-
-//# sourceMappingURL=findindex.js.map
-
-
-/***/ }),
+/* 300 */,
 /* 301 */,
 /* 302 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -8196,6 +8033,7 @@ module.exports = satisfies
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.createGrouping = void 0;
 /**
  * @ignore
  */
@@ -8234,6 +8072,7 @@ var Subscription = (function () {
         this._parentOrParents = null;
         this._subscriptions = null;
         if (unsubscribe) {
+            this._ctorUnsubscribe = true;
             this._unsubscribe = unsubscribe;
         }
     }
@@ -8242,7 +8081,7 @@ var Subscription = (function () {
         if (this.closed) {
             return;
         }
-        var _a = this, _parentOrParents = _a._parentOrParents, _unsubscribe = _a._unsubscribe, _subscriptions = _a._subscriptions;
+        var _a = this, _parentOrParents = _a._parentOrParents, _ctorUnsubscribe = _a._ctorUnsubscribe, _unsubscribe = _a._unsubscribe, _subscriptions = _a._subscriptions;
         this.closed = true;
         this._parentOrParents = null;
         this._subscriptions = null;
@@ -8256,6 +8095,9 @@ var Subscription = (function () {
             }
         }
         if (isFunction_1.isFunction(_unsubscribe)) {
+            if (_ctorUnsubscribe) {
+                this._unsubscribe = undefined;
+            }
             try {
                 _unsubscribe.call(this);
             }
@@ -8362,36 +8204,7 @@ function flattenUnsubscriptionErrors(errors) {
 
 /***/ }),
 /* 313 */,
-/* 314 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class WhileAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(condition, source) {
-        super();
-        this._condition = condition;
-        this._source = source;
-    }
-    async *[Symbol.asyncIterator]() {
-        while (await this._condition()) {
-            for await (const item of this._source) {
-                yield item;
-            }
-        }
-    }
-}
-function whileDo(condition, source) {
-    return new WhileAsyncIterable(condition, source);
-}
-exports.whileDo = whileDo;
-
-//# sourceMappingURL=whiledo.js.map
-
-
-/***/ }),
+/* 314 */,
 /* 315 */,
 /* 316 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -8412,15 +8225,14 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 exports.defaultThrottleConfig = {
     leading: true,
     trailing: false
 };
 function throttle(durationSelector, config) {
     if (config === void 0) { config = exports.defaultThrottleConfig; }
-    return function (source) { return source.lift(new ThrottleOperator(durationSelector, config.leading, config.trailing)); };
+    return function (source) { return source.lift(new ThrottleOperator(durationSelector, !!config.leading, !!config.trailing)); };
 }
 exports.throttle = throttle;
 var ThrottleOperator = (function () {
@@ -8464,12 +8276,12 @@ var ThrottleSubscriber = (function (_super) {
             this.throttle(_sendValue);
         }
         this._hasValue = false;
-        this._sendValue = null;
+        this._sendValue = undefined;
     };
     ThrottleSubscriber.prototype.throttle = function (value) {
         var duration = this.tryDurationSelector(value);
         if (!!duration) {
-            this.add(this._throttled = subscribeToResult_1.subscribeToResult(this, duration));
+            this.add(this._throttled = innerSubscribe_1.innerSubscribe(duration, new innerSubscribe_1.SimpleInnerSubscriber(this)));
         }
     };
     ThrottleSubscriber.prototype.tryDurationSelector = function (value) {
@@ -8486,19 +8298,19 @@ var ThrottleSubscriber = (function (_super) {
         if (_throttled) {
             _throttled.unsubscribe();
         }
-        this._throttled = null;
+        this._throttled = undefined;
         if (_trailing) {
             this.send();
         }
     };
-    ThrottleSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    ThrottleSubscriber.prototype.notifyNext = function () {
         this.throttlingDone();
     };
     ThrottleSubscriber.prototype.notifyComplete = function () {
         this.throttlingDone();
     };
     return ThrottleSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=throttle.js.map
 
 /***/ }),
@@ -8530,16 +8342,25 @@ exports.merge = merge;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.reduceRight = void 0;
 const toarray_1 = __webpack_require__(274);
-function reduceRight(source, accumulator, ...seed) {
+function reduceRight(source, optionsOrAccumulator, seed) {
+    const options = 
+    // eslint-disable-next-line no-nested-ternary
+    typeof optionsOrAccumulator === 'function'
+        ? arguments.length > 2
+            ? { 'callback': optionsOrAccumulator, 'seed': seed }
+            : { 'callback': optionsOrAccumulator }
+        : optionsOrAccumulator;
+    const { ['seed']: _seed, ['callback']: callback } = options;
+    const hasSeed = options.hasOwnProperty('seed');
     const array = toarray_1.toArray(source);
-    const hasSeed = seed.length === 1;
     let hasValue = false;
-    let acc = seed[0];
+    let acc = _seed;
     for (let offset = array.length - 1; offset >= 0; offset--) {
         const item = array[offset];
         if (hasValue || (hasValue = hasSeed)) {
-            acc = accumulator(acc, item, offset);
+            acc = callback(acc, item, offset);
         }
         else {
             acc = item;
@@ -8622,7 +8443,7 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
     __setModuleDefault(result, mod);
     return result;
 };
@@ -8878,8 +8699,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function buffer(closingNotifier) {
     return function bufferOperatorFunction(source) {
         return source.lift(new BufferOperator(closingNotifier));
@@ -8900,19 +8720,19 @@ var BufferSubscriber = (function (_super) {
     function BufferSubscriber(destination, closingNotifier) {
         var _this = _super.call(this, destination) || this;
         _this.buffer = [];
-        _this.add(subscribeToResult_1.subscribeToResult(_this, closingNotifier));
+        _this.add(innerSubscribe_1.innerSubscribe(closingNotifier, new innerSubscribe_1.SimpleInnerSubscriber(_this)));
         return _this;
     }
     BufferSubscriber.prototype._next = function (value) {
         this.buffer.push(value);
     };
-    BufferSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    BufferSubscriber.prototype.notifyNext = function () {
         var buffer = this.buffer;
         this.buffer = [];
         this.destination.next(buffer);
     };
     return BufferSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
@@ -8956,10 +8776,18 @@ exports.combineLatest = combineLatest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.as = void 0;
 const asynciterablex_1 = __webpack_require__(346);
 const isiterable_1 = __webpack_require__(35);
 const identity_1 = __webpack_require__(296);
 const from_1 = __webpack_require__(434);
+/**
+ * Converts the input into an async-iterable sequence.
+ *
+ * @export
+ * @param {*} source The source to convert to an async-iterable sequence.
+ * @returns {AsyncIterableX<*>} An async-iterable containing the input.
+ */
 /** @nocollapse */
 function as(source) {
     if (source instanceof asynciterablex_1.AsyncIterableX) {
@@ -8988,33 +8816,7 @@ exports.as = as;
 
 
 /***/ }),
-/* 343 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asyncsink_1 = __webpack_require__(506);
-const memoize_1 = __webpack_require__(74);
-function fromEventPattern(addHandler, removeHandler) {
-    const sink = new asyncsink_1.AsyncSink();
-    const handler = (e) => sink.write(e);
-    addHandler(handler);
-    const yielder = async function* () {
-        for (let next; !(next = await sink.next()).done;) {
-            yield next.value;
-        }
-        removeHandler(handler);
-        sink.end();
-    };
-    return memoize_1.memoize()(yielder());
-}
-exports.fromEventPattern = fromEventPattern;
-
-//# sourceMappingURL=fromeventpattern.js.map
-
-
-/***/ }),
+/* 343 */,
 /* 344 */,
 /* 345 */,
 /* 346 */
@@ -9023,19 +8825,29 @@ exports.fromEventPattern = fromEventPattern;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.AsyncIterableX = void 0;
 const as_1 = __webpack_require__(342);
 const from_1 = __webpack_require__(434);
-const bindcallback_1 = __webpack_require__(270);
 const isiterable_1 = __webpack_require__(35);
+class WithAbortAsyncIterable {
+    constructor(source, signal) {
+        this._source = source;
+        this._signal = signal;
+    }
+    [Symbol.asyncIterator]() {
+        // @ts-ignore
+        return this._source[Symbol.asyncIterator](this._signal);
+    }
+}
 /**
  * This class serves as the base for all operations which support [Symbol.asyncIterator].
  */
 class AsyncIterableX {
-    async forEach(projection, thisArg) {
-        const fn = bindcallback_1.bindCallback(projection, thisArg, 2);
+    async forEach(projection, thisArg, signal) {
+        const source = signal ? new WithAbortAsyncIterable(this, signal) : this;
         let i = 0;
-        for await (const item of this) {
-            await fn(item, i++);
+        for await (const item of source) {
+            await projection.call(thisArg, item, i++, signal);
         }
     }
     pipe(...args) {
@@ -9049,9 +8861,17 @@ class AsyncIterableX {
     }
 }
 exports.AsyncIterableX = AsyncIterableX;
+AsyncIterableX.prototype[Symbol.toStringTag] = 'AsyncIterableX';
+Object.defineProperty(AsyncIterableX, Symbol.hasInstance, {
+    writable: true,
+    configurable: true,
+    value(inst) {
+        return !!(inst && inst[Symbol.toStringTag] === 'AsyncIterableX');
+    },
+});
 from_1._initialize(AsyncIterableX);
 try {
-    (isBrowser => {
+    ((isBrowser) => {
         if (isBrowser) {
             return;
         }
@@ -9170,76 +8990,8 @@ exports.Notification = Notification;
 //# sourceMappingURL=Notification.js.map
 
 /***/ }),
-/* 348 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const identity_1 = __webpack_require__(296);
-const returniterator_1 = __webpack_require__(764);
-class ZipAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(sources, fn) {
-        super();
-        this._sources = sources;
-        this._fn = fn;
-    }
-    // eslint-disable-next-line consistent-return
-    async *[Symbol.asyncIterator]() {
-        const fn = this._fn;
-        const sourcesLength = this._sources.length;
-        const its = this._sources.map(x => x[Symbol.asyncIterator]());
-        while (sourcesLength > 0) {
-            const values = new Array(sourcesLength);
-            for (let i = -1; ++i < sourcesLength;) {
-                const result = await its[i].next();
-                if (result.done) {
-                    await Promise.all(its.map(returniterator_1.returnAsyncIterator));
-                    return undefined;
-                }
-                values[i] = result.value;
-            }
-            yield await fn(values);
-        }
-    }
-}
-exports.ZipAsyncIterable = ZipAsyncIterable;
-function zip(...sources) {
-    let fn = (sources.shift() || identity_1.identityAsync);
-    if (fn && typeof fn !== 'function') {
-        sources.unshift(fn);
-        fn = identity_1.identityAsync;
-    }
-    return new ZipAsyncIterable(sources, fn);
-}
-exports.zip = zip;
-
-//# sourceMappingURL=zip.js.map
-
-
-/***/ }),
-/* 349 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class EmptyAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    async *[Symbol.asyncIterator]() {
-        // eslint-disable-next-line no-empty
-    }
-}
-function empty() {
-    return new EmptyAsyncIterable();
-}
-exports.empty = empty;
-
-//# sourceMappingURL=empty.js.map
-
-
-/***/ }),
+/* 348 */,
+/* 349 */,
 /* 350 */,
 /* 351 */
 /***/ (function(__unusedmodule, exports) {
@@ -9264,27 +9016,7 @@ exports.TimeoutError = TimeoutErrorImpl;
 /* 352 */,
 /* 353 */,
 /* 354 */,
-/* 355 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function some(source, predicate) {
-    let i = 0;
-    for await (const item of source) {
-        if (await predicate(item, i++)) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.some = some;
-
-//# sourceMappingURL=some.js.map
-
-
-/***/ }),
+/* 355 */,
 /* 356 */,
 /* 357 */
 /***/ (function(module) {
@@ -9298,7 +9030,7 @@ module.exports = require("assert");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(422);
+const tslib_1 = __webpack_require__(779);
 tslib_1.__exportStar(__webpack_require__(496), exports);
 tslib_1.__exportStar(__webpack_require__(923), exports);
 tslib_1.__exportStar(__webpack_require__(893), exports);
@@ -9309,11 +9041,9 @@ tslib_1.__exportStar(__webpack_require__(650), exports);
 tslib_1.__exportStar(__webpack_require__(661), exports);
 tslib_1.__exportStar(__webpack_require__(639), exports);
 tslib_1.__exportStar(__webpack_require__(142), exports);
-tslib_1.__exportStar(__webpack_require__(586), exports);
 tslib_1.__exportStar(__webpack_require__(749), exports);
 tslib_1.__exportStar(__webpack_require__(78), exports);
 tslib_1.__exportStar(__webpack_require__(840), exports);
-tslib_1.__exportStar(__webpack_require__(295), exports);
 tslib_1.__exportStar(__webpack_require__(166), exports);
 tslib_1.__exportStar(__webpack_require__(646), exports);
 tslib_1.__exportStar(__webpack_require__(945), exports);
@@ -9321,12 +9051,12 @@ tslib_1.__exportStar(__webpack_require__(953), exports);
 tslib_1.__exportStar(__webpack_require__(927), exports);
 tslib_1.__exportStar(__webpack_require__(954), exports);
 tslib_1.__exportStar(__webpack_require__(416), exports);
-tslib_1.__exportStar(__webpack_require__(440), exports);
 tslib_1.__exportStar(__webpack_require__(701), exports);
+tslib_1.__exportStar(__webpack_require__(218), exports);
 tslib_1.__exportStar(__webpack_require__(372), exports);
+tslib_1.__exportStar(__webpack_require__(275), exports);
 tslib_1.__exportStar(__webpack_require__(902), exports);
 tslib_1.__exportStar(__webpack_require__(920), exports);
-tslib_1.__exportStar(__webpack_require__(570), exports);
 tslib_1.__exportStar(__webpack_require__(50), exports);
 tslib_1.__exportStar(__webpack_require__(992), exports);
 tslib_1.__exportStar(__webpack_require__(322), exports);
@@ -9335,10 +9065,10 @@ tslib_1.__exportStar(__webpack_require__(832), exports);
 tslib_1.__exportStar(__webpack_require__(120), exports);
 tslib_1.__exportStar(__webpack_require__(169), exports);
 tslib_1.__exportStar(__webpack_require__(968), exports);
-tslib_1.__exportStar(__webpack_require__(148), exports);
+tslib_1.__exportStar(__webpack_require__(94), exports);
 tslib_1.__exportStar(__webpack_require__(814), exports);
 tslib_1.__exportStar(__webpack_require__(274), exports);
-tslib_1.__exportStar(__webpack_require__(429), exports);
+tslib_1.__exportStar(__webpack_require__(570), exports);
 tslib_1.__exportStar(__webpack_require__(810), exports);
 tslib_1.__exportStar(__webpack_require__(655), exports);
 tslib_1.__exportStar(__webpack_require__(41), exports);
@@ -9348,37 +9078,7 @@ tslib_1.__exportStar(__webpack_require__(785), exports);
 
 
 /***/ }),
-/* 359 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-class IgnoreElementsIterable extends iterablex_1.IterableX {
-    constructor(source) {
-        super();
-        this._source = source;
-    }
-    *[Symbol.iterator]() {
-        const it = this._source[Symbol.iterator]();
-        while (!it.next().done) {
-            /* intentionally empty */
-        }
-    }
-}
-exports.IgnoreElementsIterable = IgnoreElementsIterable;
-function ignoreElements() {
-    return function ignoreElementsOperatorFunction(source) {
-        return new IgnoreElementsIterable(source);
-    };
-}
-exports.ignoreElements = ignoreElements;
-
-//# sourceMappingURL=ignoreelements.js.map
-
-
-/***/ }),
+/* 359 */,
 /* 360 */,
 /* 361 */,
 /* 362 */,
@@ -9388,6 +9088,7 @@ exports.ignoreElements = ignoreElements;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.innerJoin = exports.JoinIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const _grouping_1 = __webpack_require__(311);
 const identity_1 = __webpack_require__(296);
@@ -9413,6 +9114,24 @@ class JoinIterable extends iterablex_1.IterableX {
     }
 }
 exports.JoinIterable = JoinIterable;
+/**
+ * Correlates the elements of two sequences based on matching keys.
+ *
+ * @export
+ * @template TOuter The type of the elements of the first iterable sequence.
+ * @template TInner The type of the elements of the second iterable sequence.
+ * @template TKey The type of the keys returned by the key selector functions.
+ * @template TResult The type of the result elements.
+ * @param {Iterable<TInner>} inner The async-enumerable sequence to join to the first sequence.
+ * @param {((value: TOuter) => TKey)} outerSelector A function to extract the join key from each element
+ * of the first sequence.
+ * @param {((value: TInner) => TKey)} innerSelector A function to extract the join key from each element
+ * of the second sequence.
+ * @param {((outer: TOuter, inner: TInner) => TResult)} resultSelector A function to create a result element
+ * from two matching elements.
+ * @returns {OperatorFunction<TOuter, TResult>} An iterable sequence that has elements that are obtained by performing an inner join
+ * on two sequences.
+ */
 function innerJoin(inner, outerSelector, innerSelector, resultSelector) {
     return function innerJoinOperatorFunction(outer) {
         return new JoinIterable(outer, inner, outerSelector, innerSelector, resultSelector);
@@ -9430,7 +9149,7 @@ exports.innerJoin = innerJoin;
 /* 367 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const lt = (a, b, loose) => compare(a, b, loose) < 0
 module.exports = lt
 
@@ -9469,23 +9188,33 @@ exports.empty = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.min = void 0;
+const comparer_1 = __webpack_require__(492);
 const identity_1 = __webpack_require__(296);
-function min(source, fn = identity_1.identity) {
-    let atleastOnce = false;
-    let value = Infinity;
-    for (const item of source) {
-        if (!atleastOnce) {
-            atleastOnce = true;
-        }
-        const x = fn(item);
-        if (x < value) {
-            value = x;
-        }
-    }
-    if (!atleastOnce) {
+/**
+ *  * Returns the minimum element with the optional selector.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {Iterable<TSource>} source An iterable sequence to determine the minimum element of.
+ * @param {ExtremaByOptions<TKey>} [options] The options which include an optional comparer.
+ * @returns {TResult} The minimum element.
+ */
+function min(source, options) {
+    const { ['comparer']: comparer = comparer_1.equalityComparer, ['selector']: selector = identity_1.identity } = options || {};
+    const it = source[Symbol.iterator]();
+    let next = it.next();
+    if (next.done) {
         throw new Error('Sequence contains no elements');
     }
-    return value;
+    let minValue = selector(next.value);
+    while (!(next = it.next()).done) {
+        const current = selector(next.value);
+        if (comparer(current, minValue) < 0) {
+            minValue = current;
+        }
+    }
+    return minValue;
 }
 exports.min = min;
 
@@ -9499,14 +9228,23 @@ exports.min = min;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function reduce(source, accumulator, ...seed) {
-    const hasSeed = seed.length === 1;
+exports.reduce = void 0;
+function reduce(source, optionsOrAccumulator, seed) {
+    const options = 
+    // eslint-disable-next-line no-nested-ternary
+    typeof optionsOrAccumulator === 'function'
+        ? arguments.length > 2
+            ? { 'callback': optionsOrAccumulator, 'seed': seed }
+            : { 'callback': optionsOrAccumulator }
+        : optionsOrAccumulator;
+    const { ['seed']: _seed, ['callback']: callback } = options;
+    const hasSeed = options.hasOwnProperty('seed');
     let i = 0;
     let hasValue = false;
-    let acc = seed[0];
+    let acc = _seed;
     for (const item of source) {
         if (hasValue || (hasValue = hasSeed)) {
-            acc = accumulator(acc, item, i++);
+            acc = callback(acc, item, i++);
         }
         else {
             acc = item;
@@ -9577,7 +9315,7 @@ var DelayWhenSubscriber = (function (_super) {
         _this.index = 0;
         return _this;
     }
-    DelayWhenSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    DelayWhenSubscriber.prototype.notifyNext = function (outerValue, _innerValue, _outerIndex, _innerIndex, innerSub) {
         this.destination.next(outerValue);
         this.removeSubscription(innerSub);
         this.tryComplete();
@@ -9777,34 +9515,7 @@ exports.subscribeToPromise = function (promise) { return function (subscriber) {
 //# sourceMappingURL=subscribeToPromise.js.map
 
 /***/ }),
-/* 382 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class DeferAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(fn) {
-        super();
-        this._fn = fn;
-    }
-    async *[Symbol.asyncIterator]() {
-        const items = await this._fn();
-        for await (const item of items) {
-            yield item;
-        }
-    }
-}
-function defer(factory) {
-    return new DeferAsyncIterable(factory);
-}
-exports.defer = defer;
-
-//# sourceMappingURL=defer.js.map
-
-
-/***/ }),
+/* 382 */,
 /* 383 */,
 /* 384 */,
 /* 385 */
@@ -10168,7 +9879,7 @@ function withDefaults(oldDefaults, newDefaults) {
   });
 }
 
-const VERSION = "6.0.2";
+const VERSION = "6.0.3";
 
 const userAgent = `octokit-endpoint.js/${VERSION} ${universalUserAgent.getUserAgent()}`; // DEFAULTS has all properties set that EndpointOptions has, except url.
 // So we use RequestParameters and add method as additional required property.
@@ -10282,10 +9993,41 @@ exports.schedulePromise = schedulePromise;
 /* 393 */,
 /* 394 */,
 /* 395 */,
-/* 396 */,
+/* 396 */
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = function (Yallist) {
+  Yallist.prototype[Symbol.iterator] = function* () {
+    for (let walker = this.head; walker; walker = walker.next) {
+      yield walker.value
+    }
+  }
+}
+
+
+/***/ }),
 /* 397 */,
 /* 398 */,
-/* 399 */,
+/* 399 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var concat_1 = __webpack_require__(406);
+function concat() {
+    var observables = [];
+    for (var _i = 0; _i < arguments.length; _i++) {
+        observables[_i] = arguments[_i];
+    }
+    return function (source) { return source.lift.call(concat_1.concat.apply(void 0, [source].concat(observables))); };
+}
+exports.concat = concat;
+//# sourceMappingURL=concat.js.map
+
+/***/ }),
 /* 400 */
 /***/ (function(__unusedmodule, exports) {
 
@@ -10427,7 +10169,8 @@ exports.concat = concat;
 Object.defineProperty(exports, "__esModule", { value: true });
 var AsyncAction_1 = __webpack_require__(162);
 var AsyncScheduler_1 = __webpack_require__(255);
-exports.async = new AsyncScheduler_1.AsyncScheduler(AsyncAction_1.AsyncAction);
+exports.asyncScheduler = new AsyncScheduler_1.AsyncScheduler(AsyncAction_1.AsyncAction);
+exports.async = exports.asyncScheduler;
 //# sourceMappingURL=async.js.map
 
 /***/ }),
@@ -10445,20 +10188,31 @@ module.exports = __webpack_require__(141);
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.create = void 0;
 const asynciterablex_1 = __webpack_require__(346);
+const aborterror_1 = __webpack_require__(792);
 class AnonymousAsyncIterable extends asynciterablex_1.AsyncIterableX {
     constructor(fn) {
         super();
         this._fn = fn;
     }
-    async *[Symbol.asyncIterator]() {
-        const it = await this._fn();
+    async *[Symbol.asyncIterator](signal) {
+        aborterror_1.throwIfAborted(signal);
+        const it = await this._fn(signal);
         let next;
         while (!(next = await it.next()).done) {
             yield next.value;
         }
     }
 }
+/**
+ * Creates a new iterable using the specified function implementing the members of AsyncIterable
+ *
+ * @export
+ * @template T The type of the elements returned by the enumerable sequence.
+ * @param {((signal?: AbortSignal) => AsyncIterator<T> | Promise<AsyncIterator<T>>)} fn The function that creates the [Symbol.asyncIterator]() method
+ * @returns {AsyncIterableX<T>} A new async-iterable instance.
+ */
 function create(fn) {
     return new AnonymousAsyncIterable(fn);
 }
@@ -10475,11 +10229,24 @@ exports.create = create;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function last(source, predicate = () => true) {
+exports.last = void 0;
+/**
+ * Returns the last element of an iterable sequence that satisfies the condition in the predicate if given
+ * otherwise the last item in the sequence, or a default value if no such element exists.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @param {Iterable<T>} source The source iterable sequence.
+ * @param {OptionalFindSubclassedOptions<T, S>} [options] The options which include an optional predicate for filtering,
+ * thirArg for binding, and abort signal for cancellation
+ * @returns {(S | undefined)} The last value that matches the optional predicate or last item, otherwise undefined.
+ */
+function last(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate = () => true } = options || {};
     let i = 0;
     let result;
     for (const item of source) {
-        if (predicate(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             result = item;
         }
     }
@@ -10515,9 +10282,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fromArray_1 = __webpack_require__(634);
 var isArray_1 = __webpack_require__(495);
 var Subscriber_1 = __webpack_require__(114);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
 var iterator_1 = __webpack_require__(974);
+var innerSubscribe_1 = __webpack_require__(938);
 function zip() {
     var observables = [];
     for (var _i = 0; _i < arguments.length; _i++) {
@@ -10545,10 +10311,10 @@ var ZipSubscriber = (function (_super) {
     function ZipSubscriber(destination, resultSelector, values) {
         if (values === void 0) { values = Object.create(null); }
         var _this = _super.call(this, destination) || this;
+        _this.resultSelector = resultSelector;
         _this.iterators = [];
         _this.active = 0;
-        _this.resultSelector = (typeof resultSelector === 'function') ? resultSelector : null;
-        _this.values = values;
+        _this.resultSelector = (typeof resultSelector === 'function') ? resultSelector : undefined;
         return _this;
     }
     ZipSubscriber.prototype._next = function (value) {
@@ -10576,7 +10342,7 @@ var ZipSubscriber = (function (_super) {
             var iterator = iterators[i];
             if (iterator.stillUnsubscribed) {
                 var destination = this.destination;
-                destination.add(iterator.subscribe(iterator, i));
+                destination.add(iterator.subscribe());
             }
             else {
                 this.active--;
@@ -10652,7 +10418,7 @@ var StaticIterator = (function () {
     };
     StaticIterator.prototype.hasCompleted = function () {
         var nextResult = this.nextResult;
-        return nextResult && nextResult.done;
+        return Boolean(nextResult && nextResult.done);
     };
     return StaticIterator;
 }());
@@ -10717,15 +10483,15 @@ var ZipBufferIterator = (function (_super) {
             this.destination.complete();
         }
     };
-    ZipBufferIterator.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    ZipBufferIterator.prototype.notifyNext = function (innerValue) {
         this.buffer.push(innerValue);
         this.parent.checkIterators();
     };
-    ZipBufferIterator.prototype.subscribe = function (value, index) {
-        return subscribeToResult_1.subscribeToResult(this, this.observable, this, index);
+    ZipBufferIterator.prototype.subscribe = function () {
+        return innerSubscribe_1.innerSubscribe(this.observable, new innerSubscribe_1.SimpleInnerSubscriber(this));
     };
     return ZipBufferIterator;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=zip.js.map
 
 /***/ }),
@@ -10735,11 +10501,21 @@ var ZipBufferIterator = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.doWhile = void 0;
 const concat_1 = __webpack_require__(805);
 const whiledo_1 = __webpack_require__(41);
+/**
+ * Generates an async-iterable sequence by repeating a source sequence as long as the given loop postcondition holds.
+ *
+ * @export
+ * @template TSource The type of elements in the source sequence.
+ * @param {(() => boolean)} condition Loop condition.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that generates an async-iterable by repeating a
+ * source sequence while the postcondition holds.
+ */
 function doWhile(condition) {
     return function doWhileOperatorFunction(source) {
-        return concat_1.concat(source, whiledo_1.whileDo(condition, source));
+        return concat_1.concat(source, whiledo_1.whileDo(source, condition));
     };
 }
 exports.doWhile = doWhile;
@@ -10749,296 +10525,7 @@ exports.doWhile = doWhile;
 
 /***/ }),
 /* 421 */,
-/* 422 */
-/***/ (function(module) {
-
-/*! *****************************************************************************
-Copyright (c) Microsoft Corporation.
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
-***************************************************************************** */
-
-/* global global, define, System, Reflect, Promise */
-var __extends;
-var __assign;
-var __rest;
-var __decorate;
-var __param;
-var __metadata;
-var __awaiter;
-var __generator;
-var __exportStar;
-var __values;
-var __read;
-var __spread;
-var __spreadArrays;
-var __await;
-var __asyncGenerator;
-var __asyncDelegator;
-var __asyncValues;
-var __makeTemplateObject;
-var __importStar;
-var __importDefault;
-var __classPrivateFieldGet;
-var __classPrivateFieldSet;
-var __createBinding;
-(function (factory) {
-    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
-    if (typeof define === "function" && define.amd) {
-        define("tslib", ["exports"], function (exports) { factory(createExporter(root, createExporter(exports))); });
-    }
-    else if ( true && typeof module.exports === "object") {
-        factory(createExporter(root, createExporter(module.exports)));
-    }
-    else {
-        factory(createExporter(root));
-    }
-    function createExporter(exports, previous) {
-        if (exports !== root) {
-            if (typeof Object.create === "function") {
-                Object.defineProperty(exports, "__esModule", { value: true });
-            }
-            else {
-                exports.__esModule = true;
-            }
-        }
-        return function (id, v) { return exports[id] = previous ? previous(id, v) : v; };
-    }
-})
-(function (exporter) {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-
-    __extends = function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-
-    __assign = Object.assign || function (t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
-        }
-        return t;
-    };
-
-    __rest = function (s, e) {
-        var t = {};
-        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
-            t[p] = s[p];
-        if (s != null && typeof Object.getOwnPropertySymbols === "function")
-            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
-                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
-                    t[p[i]] = s[p[i]];
-            }
-        return t;
-    };
-
-    __decorate = function (decorators, target, key, desc) {
-        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-        return c > 3 && r && Object.defineProperty(target, key, r), r;
-    };
-
-    __param = function (paramIndex, decorator) {
-        return function (target, key) { decorator(target, key, paramIndex); }
-    };
-
-    __metadata = function (metadataKey, metadataValue) {
-        if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
-    };
-
-    __awaiter = function (thisArg, _arguments, P, generator) {
-        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    };
-
-    __generator = function (thisArg, body) {
-        var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-        function verb(n) { return function (v) { return step([n, v]); }; }
-        function step(op) {
-            if (f) throw new TypeError("Generator is already executing.");
-            while (_) try {
-                if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-                if (y = 0, t) op = [op[0] & 2, t.value];
-                switch (op[0]) {
-                    case 0: case 1: t = op; break;
-                    case 4: _.label++; return { value: op[1], done: false };
-                    case 5: _.label++; y = op[1]; op = [0]; continue;
-                    case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                    default:
-                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                        if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                        if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                        if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                        if (t[2]) _.ops.pop();
-                        _.trys.pop(); continue;
-                }
-                op = body.call(thisArg, _);
-            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-            if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-        }
-    };
-
-    __createBinding = function(o, m, k, k2) {
-        if (k2 === undefined) k2 = k;
-        o[k2] = m[k];
-    };
-
-    __exportStar = function (m, exports) {
-        for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) exports[p] = m[p];
-    };
-
-    __values = function (o) {
-        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-        if (m) return m.call(o);
-        if (o && typeof o.length === "number") return {
-            next: function () {
-                if (o && i >= o.length) o = void 0;
-                return { value: o && o[i++], done: !o };
-            }
-        };
-        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-    };
-
-    __read = function (o, n) {
-        var m = typeof Symbol === "function" && o[Symbol.iterator];
-        if (!m) return o;
-        var i = m.call(o), r, ar = [], e;
-        try {
-            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
-        }
-        catch (error) { e = { error: error }; }
-        finally {
-            try {
-                if (r && !r.done && (m = i["return"])) m.call(i);
-            }
-            finally { if (e) throw e.error; }
-        }
-        return ar;
-    };
-
-    __spread = function () {
-        for (var ar = [], i = 0; i < arguments.length; i++)
-            ar = ar.concat(__read(arguments[i]));
-        return ar;
-    };
-
-    __spreadArrays = function () {
-        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
-        for (var r = Array(s), k = 0, i = 0; i < il; i++)
-            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
-                r[k] = a[j];
-        return r;
-    };
-
-    __await = function (v) {
-        return this instanceof __await ? (this.v = v, this) : new __await(v);
-    };
-
-    __asyncGenerator = function (thisArg, _arguments, generator) {
-        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-        var g = generator.apply(thisArg, _arguments || []), i, q = [];
-        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
-        function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
-        function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
-        function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);  }
-        function fulfill(value) { resume("next", value); }
-        function reject(value) { resume("throw", value); }
-        function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
-    };
-
-    __asyncDelegator = function (o) {
-        var i, p;
-        return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
-        function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
-    };
-
-    __asyncValues = function (o) {
-        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-        var m = o[Symbol.asyncIterator], i;
-        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-        function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-        function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-    };
-
-    __makeTemplateObject = function (cooked, raw) {
-        if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
-        return cooked;
-    };
-
-    __importStar = function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-        result["default"] = mod;
-        return result;
-    };
-
-    __importDefault = function (mod) {
-        return (mod && mod.__esModule) ? mod : { "default": mod };
-    };
-
-    __classPrivateFieldGet = function (receiver, privateMap) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to get private field on non-instance");
-        }
-        return privateMap.get(receiver);
-    };
-
-    __classPrivateFieldSet = function (receiver, privateMap, value) {
-        if (!privateMap.has(receiver)) {
-            throw new TypeError("attempted to set private field on non-instance");
-        }
-        privateMap.set(receiver, value);
-        return value;
-    };
-
-    exporter("__extends", __extends);
-    exporter("__assign", __assign);
-    exporter("__rest", __rest);
-    exporter("__decorate", __decorate);
-    exporter("__param", __param);
-    exporter("__metadata", __metadata);
-    exporter("__awaiter", __awaiter);
-    exporter("__generator", __generator);
-    exporter("__exportStar", __exportStar);
-    exporter("__createBinding", __createBinding);
-    exporter("__values", __values);
-    exporter("__read", __read);
-    exporter("__spread", __spread);
-    exporter("__spreadArrays", __spreadArrays);
-    exporter("__await", __await);
-    exporter("__asyncGenerator", __asyncGenerator);
-    exporter("__asyncDelegator", __asyncDelegator);
-    exporter("__asyncValues", __asyncValues);
-    exporter("__makeTemplateObject", __makeTemplateObject);
-    exporter("__importStar", __importStar);
-    exporter("__importDefault", __importDefault);
-    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
-    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
-});
-
-
-/***/ }),
+/* 422 */,
 /* 423 */,
 /* 424 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -11168,123 +10655,8 @@ function dispatchNotification(state) {
 //# sourceMappingURL=sampleTime.js.map
 
 /***/ }),
-/* 429 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const from_1 = __webpack_require__(434);
-const publish_1 = __webpack_require__(273);
-const iterablex_1 = __webpack_require__(954);
-const todomstream_1 = __webpack_require__(546);
-function toDOMStream(source, options) {
-    if (!options || !('type' in options) || options['type'] !== 'bytes') {
-        return todomstream_1.toDOMStream(from_1.from(source), options);
-    }
-    return todomstream_1.toDOMStream(from_1.from(source), options);
-}
-exports.toDOMStream = toDOMStream;
-iterablex_1.IterableX.prototype.tee = function () {
-    return _getDOMStream(this).tee();
-};
-iterablex_1.IterableX.prototype.pipeTo = function (writable, options) {
-    return _getDOMStream(this).pipeTo(writable, options);
-};
-iterablex_1.IterableX.prototype.pipeThrough = function (duplex, options) {
-    return _getDOMStream(this).pipeThrough(duplex, options);
-};
-function _getDOMStream(self) {
-    return self._DOMStream || (self._DOMStream = self.pipe(publish_1.publish(), toDOMStream));
-}
-function toDOMStreamProto(options) {
-    return !options ? toDOMStream(this) : toDOMStream(this, options);
-}
-exports.toDOMStreamProto = toDOMStreamProto;
-iterablex_1.IterableX.prototype.toDOMStream = toDOMStreamProto;
-
-//# sourceMappingURL=todomstream.js.map
-
-
-/***/ }),
-/* 430 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-const _refcountlist_1 = __webpack_require__(241);
-const create_1 = __webpack_require__(228);
-class MemoizeBuffer extends iterablex_1.IterableX {
-    constructor(source, buffer) {
-        super();
-        this._stopped = false;
-        this._source = source;
-        this._buffer = buffer;
-    }
-    // eslint-disable-next-line complexity
-    *[Symbol.iterator]() {
-        let i = 0;
-        try {
-            while (1) {
-                let hasValue = false;
-                let current = {};
-                if (i >= this._buffer.count) {
-                    if (!this._stopped) {
-                        try {
-                            const next = this._source.next();
-                            hasValue = !next.done;
-                            // eslint-disable-next-line max-depth
-                            if (hasValue) {
-                                current = next.value;
-                            }
-                        }
-                        catch (e) {
-                            this._error = e;
-                            this._stopped = true;
-                        }
-                    }
-                    if (this._stopped) {
-                        throw this._error;
-                    }
-                    if (hasValue) {
-                        this._buffer.push(current);
-                    }
-                }
-                else {
-                    hasValue = true;
-                }
-                if (hasValue) {
-                    yield this._buffer.get(i);
-                }
-                else {
-                    break;
-                }
-                i++;
-            }
-        }
-        finally {
-            this._buffer.done();
-        }
-    }
-}
-function memoize(readerCount = -1, selector) {
-    return function memoizeOperatorFunction(source) {
-        if (!selector) {
-            return readerCount === -1
-                ? new MemoizeBuffer(source[Symbol.iterator](), new _refcountlist_1.MaxRefCountList())
-                : new MemoizeBuffer(source[Symbol.iterator](), new _refcountlist_1.RefCountList(readerCount));
-        }
-        return create_1.create(() => selector(memoize(readerCount)(source))[Symbol.iterator]());
-    };
-}
-exports.memoize = memoize;
-
-//# sourceMappingURL=memoize.js.map
-
-
-/***/ }),
+/* 429 */,
+/* 430 */,
 /* 431 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11299,6 +10671,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const os = __importStar(__webpack_require__(87));
+const utils_1 = __webpack_require__(82);
 /**
  * Commands
  *
@@ -11352,28 +10725,14 @@ class Command {
         return cmdStr;
     }
 }
-/**
- * Sanitizes an input into a string so it can be passed into issueCommand safely
- * @param input input to sanitize into a string
- */
-function toCommandValue(input) {
-    if (input === null || input === undefined) {
-        return '';
-    }
-    else if (typeof input === 'string' || input instanceof String) {
-        return input;
-    }
-    return JSON.stringify(input);
-}
-exports.toCommandValue = toCommandValue;
 function escapeData(s) {
-    return toCommandValue(s)
+    return utils_1.toCommandValue(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A');
 }
 function escapeProperty(s) {
-    return toCommandValue(s)
+    return utils_1.toCommandValue(s)
         .replace(/%/g, '%25')
         .replace(/\r/g, '%0D')
         .replace(/\n/g, '%0A')
@@ -11383,42 +10742,7 @@ function escapeProperty(s) {
 //# sourceMappingURL=command.js.map
 
 /***/ }),
-/* 432 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asyncsink_1 = __webpack_require__(506);
-const memoize_1 = __webpack_require__(74);
-function asyncify(func) {
-    return function (...args) {
-        const sink = new asyncsink_1.AsyncSink();
-        const handler = function (...innerArgs) {
-            sink.write(innerArgs.length === 1 ? innerArgs[0] : innerArgs);
-            sink.end();
-        };
-        try {
-            func(...args.concat(handler));
-        }
-        catch (e) {
-            sink.error(e);
-            sink.end();
-        }
-        const yielder = async function* () {
-            for (let next; !(next = await sink.next()).done;) {
-                yield next.value;
-            }
-        };
-        return memoize_1.memoize()(yielder());
-    };
-}
-exports.asyncify = asyncify;
-
-//# sourceMappingURL=asyncify.js.map
-
-
-/***/ }),
+/* 432 */,
 /* 433 */,
 /* 434 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -11426,6 +10750,7 @@ exports.asyncify = asyncify;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports._initialize = exports.FromObservableAsyncIterable = exports.FromPromiseIterable = exports.FromAsyncIterable = exports.FromArrayIterable = exports.from = void 0;
 const identity_1 = __webpack_require__(296);
 const bindcallback_1 = __webpack_require__(270);
 const isiterable_1 = __webpack_require__(35);
@@ -11541,7 +10866,14 @@ var iterator_1 = __webpack_require__(974);
 exports.subscribeToIterable = function (iterable) { return function (subscriber) {
     var iterator = iterable[iterator_1.iterator]();
     do {
-        var item = iterator.next();
+        var item = void 0;
+        try {
+            item = iterator.next();
+        }
+        catch (err) {
+            subscriber.error(err);
+            return subscriber;
+        }
         if (item.done) {
             subscriber.complete();
             break;
@@ -11567,36 +10899,7 @@ exports.subscribeToIterable = function (iterable) { return function (subscriber)
 /* 437 */,
 /* 438 */,
 /* 439 */,
-/* 440 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterable_1 = __webpack_require__(555);
-const bindcallback_1 = __webpack_require__(270);
-class MapAsyncIterable extends asynciterable_1.AsyncIterableX {
-    constructor(source, selector) {
-        super();
-        this._source = source;
-        this._selector = selector;
-    }
-    async *[Symbol.asyncIterator]() {
-        let i = 0;
-        for await (const item of this._source) {
-            yield await this._selector(item, i++);
-        }
-    }
-}
-function mapAsync(source, selector, thisArg) {
-    return new MapAsyncIterable(source, bindcallback_1.bindCallback(selector, thisArg, 2));
-}
-exports.mapAsync = mapAsync;
-
-//# sourceMappingURL=mapasync.js.map
-
-
-/***/ }),
+/* 440 */,
 /* 441 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11617,7 +10920,9 @@ exports.concatMapTo = concatMapTo;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.tap = exports.TapIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
+const toobserver_1 = __webpack_require__(903);
 class TapIterable extends iterablex_1.IterableX {
     constructor(source, observer) {
         super();
@@ -11651,9 +10956,22 @@ class TapIterable extends iterablex_1.IterableX {
     }
 }
 exports.TapIterable = TapIterable;
-function tap(observer) {
+/**
+ * Invokes an action for each element in the iterable sequence, and propagates all observer
+ * messages through the result sequence. This method can be used for debugging, logging, etc. by
+ * intercepting the message stream to run arbitrary actions for messages on the pipeline.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {(PartialObserver<TSource> | ((value: TSource) => any) | null)} [observerOrNext] Observer whose methods to invoke as
+ * part of the source sequence's observation or a function to invoke for each element in the iterable sequence.
+ * @param {(((err: any) => any) | null)} [error] Function to invoke upon exceptional termination of the iterable sequence.
+ * @param {((() => any) | null)} [complete] Function to invoke upon graceful termination of the iterable sequence.
+ * @returns {MonoTypeOperatorFunction<TSource>} The source sequence with the side-effecting behavior applied.
+ */
+function tap(observerOrNext, error, complete) {
     return function tapOperatorFunction(source) {
-        return new TapIterable(source, observer);
+        return new TapIterable(source, toobserver_1.toObserver(observerOrNext, error, complete));
     };
 }
 exports.tap = tap;
@@ -11662,27 +10980,11 @@ exports.tap = tap;
 
 
 /***/ }),
-/* 443 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const of_1 = __webpack_require__(995);
-const repeat_1 = __webpack_require__(226);
-function repeatValue(value, count = -1) {
-    return new repeat_1.RepeatAsyncIterable(of_1.of(value), count);
-}
-exports.repeatValue = repeatValue;
-
-//# sourceMappingURL=repeatvalue.js.map
-
-
-/***/ }),
+/* 443 */,
 /* 444 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const lte = (a, b, loose) => compare(a, b, loose) <= 0
 module.exports = lte
 
@@ -11690,24 +10992,7 @@ module.exports = lte
 /***/ }),
 /* 445 */,
 /* 446 */,
-/* 447 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function isEmpty(source) {
-    for await (const _ of source) {
-        return false;
-    }
-    return true;
-}
-exports.isEmpty = isEmpty;
-
-//# sourceMappingURL=isempty.js.map
-
-
-/***/ }),
+/* 447 */,
 /* 448 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -11771,161 +11056,132 @@ function _objectSpread2(target) {
   return target;
 }
 
-const VERSION = "2.5.3";
+const VERSION = "3.1.0";
 
-let Octokit =
-/** @class */
-(() => {
-  class Octokit {
-    constructor(options = {}) {
-      const hook = new beforeAfterHook.Collection();
-      const requestDefaults = {
-        baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
-        headers: {},
-        request: Object.assign({}, options.request, {
-          hook: hook.bind(null, "request")
-        }),
-        mediaType: {
-          previews: [],
-          format: ""
-        }
-      }; // prepend default user agent with `options.userAgent` if set
-
-      requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
-
-      if (options.baseUrl) {
-        requestDefaults.baseUrl = options.baseUrl;
+class Octokit {
+  constructor(options = {}) {
+    const hook = new beforeAfterHook.Collection();
+    const requestDefaults = {
+      baseUrl: request.request.endpoint.DEFAULTS.baseUrl,
+      headers: {},
+      request: Object.assign({}, options.request, {
+        hook: hook.bind(null, "request")
+      }),
+      mediaType: {
+        previews: [],
+        format: ""
       }
+    }; // prepend default user agent with `options.userAgent` if set
 
-      if (options.previews) {
-        requestDefaults.mediaType.previews = options.previews;
-      }
+    requestDefaults.headers["user-agent"] = [options.userAgent, `octokit-core.js/${VERSION} ${universalUserAgent.getUserAgent()}`].filter(Boolean).join(" ");
 
-      if (options.timeZone) {
-        requestDefaults.headers["time-zone"] = options.timeZone;
-      }
+    if (options.baseUrl) {
+      requestDefaults.baseUrl = options.baseUrl;
+    }
 
-      this.request = request.request.defaults(requestDefaults);
-      this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
-        baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
-      }));
-      this.log = Object.assign({
-        debug: () => {},
-        info: () => {},
-        warn: console.warn.bind(console),
-        error: console.error.bind(console)
-      }, options.log);
-      this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
-      //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
-      // (2) If only `options.auth` is set, use the default token authentication strategy.
-      // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
-      // TODO: type `options.auth` based on `options.authStrategy`.
+    if (options.previews) {
+      requestDefaults.mediaType.previews = options.previews;
+    }
 
-      if (!options.authStrategy) {
-        if (!options.auth) {
-          // (1)
-          this.auth = async () => ({
-            type: "unauthenticated"
-          });
-        } else {
-          // (2)
-          const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
+    if (options.timeZone) {
+      requestDefaults.headers["time-zone"] = options.timeZone;
+    }
 
-          hook.wrap("request", auth.hook);
-          this.auth = auth;
-        }
+    this.request = request.request.defaults(requestDefaults);
+    this.graphql = graphql.withCustomRequest(this.request).defaults(_objectSpread2(_objectSpread2({}, requestDefaults), {}, {
+      baseUrl: requestDefaults.baseUrl.replace(/\/api\/v3$/, "/api")
+    }));
+    this.log = Object.assign({
+      debug: () => {},
+      info: () => {},
+      warn: console.warn.bind(console),
+      error: console.error.bind(console)
+    }, options.log);
+    this.hook = hook; // (1) If neither `options.authStrategy` nor `options.auth` are set, the `octokit` instance
+    //     is unauthenticated. The `this.auth()` method is a no-op and no request hook is registred.
+    // (2) If only `options.auth` is set, use the default token authentication strategy.
+    // (3) If `options.authStrategy` is set then use it and pass in `options.auth`. Always pass own request as many strategies accept a custom request instance.
+    // TODO: type `options.auth` based on `options.authStrategy`.
+
+    if (!options.authStrategy) {
+      if (!options.auth) {
+        // (1)
+        this.auth = async () => ({
+          type: "unauthenticated"
+        });
       } else {
-        const auth = options.authStrategy(Object.assign({
-          request: this.request
-        }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
+        // (2)
+        const auth = authToken.createTokenAuth(options.auth); // @ts-ignore  ¯\_(ツ)_/¯
 
         hook.wrap("request", auth.hook);
         this.auth = auth;
-      } // apply plugins
-      // https://stackoverflow.com/a/16345172
-
-
-      const classConstructor = this.constructor;
-      classConstructor.plugins.forEach(plugin => {
-        Object.assign(this, plugin(this, options));
-      });
-    }
-
-    static defaults(defaults) {
-      const OctokitWithDefaults = class extends this {
-        constructor(...args) {
-          const options = args[0] || {};
-          super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
-            userAgent: `${options.userAgent} ${defaults.userAgent}`
-          } : null));
-        }
-
-      };
-      return OctokitWithDefaults;
-    }
-    /**
-     * Attach a plugin (or many) to your Octokit instance.
-     *
-     * @example
-     * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
-     */
-
-
-    static plugin(p1, ...p2) {
-      var _a;
-
-      if (p1 instanceof Array) {
-        console.warn(["Passing an array of plugins to Octokit.plugin() has been deprecated.", "Instead of:", "  Octokit.plugin([plugin1, plugin2, ...])", "Use:", "  Octokit.plugin(plugin1, plugin2, ...)"].join("\n"));
       }
+    } else {
+      const auth = options.authStrategy(Object.assign({
+        request: this.request
+      }, options.auth)); // @ts-ignore  ¯\_(ツ)_/¯
 
-      const currentPlugins = this.plugins;
-      let newPlugins = [...(p1 instanceof Array ? p1 : [p1]), ...p2];
-      const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
-      return NewOctokit;
-    }
+      hook.wrap("request", auth.hook);
+      this.auth = auth;
+    } // apply plugins
+    // https://stackoverflow.com/a/16345172
 
+
+    const classConstructor = this.constructor;
+    classConstructor.plugins.forEach(plugin => {
+      Object.assign(this, plugin(this, options));
+    });
   }
 
-  Octokit.VERSION = VERSION;
-  Octokit.plugins = [];
-  return Octokit;
-})();
+  static defaults(defaults) {
+    const OctokitWithDefaults = class extends this {
+      constructor(...args) {
+        const options = args[0] || {};
+
+        if (typeof defaults === "function") {
+          super(defaults(options));
+          return;
+        }
+
+        super(Object.assign({}, defaults, options, options.userAgent && defaults.userAgent ? {
+          userAgent: `${options.userAgent} ${defaults.userAgent}`
+        } : null));
+      }
+
+    };
+    return OctokitWithDefaults;
+  }
+  /**
+   * Attach a plugin (or many) to your Octokit instance.
+   *
+   * @example
+   * const API = Octokit.plugin(plugin1, plugin2, plugin3, ...)
+   */
+
+
+  static plugin(...newPlugins) {
+    var _a;
+
+    const currentPlugins = this.plugins;
+    const NewOctokit = (_a = class extends this {}, _a.plugins = currentPlugins.concat(newPlugins.filter(plugin => !currentPlugins.includes(plugin))), _a);
+    return NewOctokit;
+  }
+
+}
+Octokit.VERSION = VERSION;
+Octokit.plugins = [];
 
 exports.Octokit = Octokit;
 //# sourceMappingURL=index.js.map
 
 
 /***/ }),
-/* 449 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class ThrowAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(error) {
-        super();
-        this._error = error;
-    }
-    async *[Symbol.asyncIterator]() {
-        throw this._error;
-    }
-}
-function throwError(error) {
-    return new ThrowAsyncIterable(error);
-}
-exports.throwError = throwError;
-
-//# sourceMappingURL=throwerrror.js.map
-
-
-/***/ }),
+/* 449 */,
 /* 450 */,
 /* 451 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const gt = (a, b, loose) => compare(a, b, loose) > 0
 module.exports = gt
 
@@ -12598,6 +11854,12 @@ function convertBody(buffer, headers) {
 	// html4
 	if (!res && str) {
 		res = /<meta[\s]+?http-equiv=(['"])content-type\1[\s]+?content=(['"])(.+?)\2/i.exec(str);
+		if (!res) {
+			res = /<meta[\s]+?content=(['"])(.+?)\1[\s]+?http-equiv=(['"])content-type\3/i.exec(str);
+			if (res) {
+				res.pop(); // drop last quote
+			}
+		}
 
 		if (res) {
 			res = /charset=(.*)/i.exec(res.pop());
@@ -13605,7 +12867,7 @@ function fetch(url, opts) {
 				// HTTP fetch step 5.5
 				switch (request.redirect) {
 					case 'error':
-						reject(new FetchError(`redirect mode is set to error: ${request.url}`, 'no-redirect'));
+						reject(new FetchError(`uri requested responds with a redirect, redirect mode is set to error: ${request.url}`, 'no-redirect'));
 						finalize();
 						return;
 					case 'manual':
@@ -13644,7 +12906,8 @@ function fetch(url, opts) {
 							method: request.method,
 							body: request.body,
 							signal: request.signal,
-							timeout: request.timeout
+							timeout: request.timeout,
+							size: request.size
 						};
 
 						// HTTP-redirect fetch step 9
@@ -13917,6 +13180,7 @@ function dispatch(state) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.defaultIfEmpty = exports.DefaultIfEmptyIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class DefaultIfEmptyIterable extends iterablex_1.IterableX {
     constructor(source, defaultValue) {
@@ -13936,6 +13200,15 @@ class DefaultIfEmptyIterable extends iterablex_1.IterableX {
     }
 }
 exports.DefaultIfEmptyIterable = DefaultIfEmptyIterable;
+/**
+ * Returns the elements of the specified sequence or the default value in a singleton sequence
+ * if the sequence is empty.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @param {T} defaultValue The value to return if the sequence is empty.
+ * @returns {MonoTypeOperatorFunction<T>} An operator which returns the elements of the source sequence or the default value as a singleton.
+ */
 function defaultIfEmpty(defaultValue) {
     return function defaultIfEmptyOperatorFunction(source) {
         return new DefaultIfEmptyIterable(source, defaultValue);
@@ -13968,8 +13241,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Subject_1 = __webpack_require__(564);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function retryWhen(notifier) {
     return function (source) { return source.lift(new RetryWhenOperator(notifier, source)); };
 }
@@ -14006,11 +13278,11 @@ var RetryWhenSubscriber = (function (_super) {
                 catch (e) {
                     return _super.prototype.error.call(this, e);
                 }
-                retriesSubscription = subscribeToResult_1.subscribeToResult(this, retries);
+                retriesSubscription = innerSubscribe_1.innerSubscribe(retries, new innerSubscribe_1.SimpleInnerSubscriber(this));
             }
             else {
-                this.errors = null;
-                this.retriesSubscription = null;
+                this.errors = undefined;
+                this.retriesSubscription = undefined;
             }
             this._unsubscribeAndRecycle();
             this.errors = errors;
@@ -14023,15 +13295,15 @@ var RetryWhenSubscriber = (function (_super) {
         var _a = this, errors = _a.errors, retriesSubscription = _a.retriesSubscription;
         if (errors) {
             errors.unsubscribe();
-            this.errors = null;
+            this.errors = undefined;
         }
         if (retriesSubscription) {
             retriesSubscription.unsubscribe();
-            this.retriesSubscription = null;
+            this.retriesSubscription = undefined;
         }
-        this.retries = null;
+        this.retries = undefined;
     };
-    RetryWhenSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    RetryWhenSubscriber.prototype.notifyNext = function () {
         var _unsubscribe = this._unsubscribe;
         this._unsubscribe = null;
         this._unsubscribeAndRecycle();
@@ -14039,7 +13311,7 @@ var RetryWhenSubscriber = (function (_super) {
         this.source.subscribe(this);
     };
     return RetryWhenSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=retryWhen.js.map
 
 /***/ }),
@@ -14081,7 +13353,7 @@ const outside = (version, range, hilo, options) => {
       throw new TypeError('Must provide a hilo val of "<" or ">"')
   }
 
-  // If it satisifes the range it is not outside
+  // If it satisfies the range it is not outside
   if (satisfies(version, range, options)) {
     return false
   }
@@ -14192,15 +13464,7 @@ exports.RequestError = RequestError;
 
 
 /***/ }),
-/* 464 */
-/***/ (function(module, __unusedexports, __webpack_require__) {
-
-const compareBuild = __webpack_require__(212)
-const rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose))
-module.exports = rsort
-
-
-/***/ }),
+/* 464 */,
 /* 465 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -14285,6 +13549,8 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const command_1 = __webpack_require__(431);
+const file_command_1 = __webpack_require__(102);
+const utils_1 = __webpack_require__(82);
 const os = __importStar(__webpack_require__(87));
 const path = __importStar(__webpack_require__(622));
 /**
@@ -14311,9 +13577,17 @@ var ExitCode;
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function exportVariable(name, val) {
-    const convertedVal = command_1.toCommandValue(val);
+    const convertedVal = utils_1.toCommandValue(val);
     process.env[name] = convertedVal;
-    command_1.issueCommand('set-env', { name }, convertedVal);
+    const filePath = process.env['GITHUB_ENV'] || '';
+    if (filePath) {
+        const delimiter = '_GitHubActionsFileCommandDelimeter_';
+        const commandValue = `${name}<<${delimiter}${os.EOL}${convertedVal}${os.EOL}${delimiter}`;
+        file_command_1.issueCommand('ENV', commandValue);
+    }
+    else {
+        command_1.issueCommand('set-env', { name }, convertedVal);
+    }
 }
 exports.exportVariable = exportVariable;
 /**
@@ -14329,7 +13603,13 @@ exports.setSecret = setSecret;
  * @param inputPath
  */
 function addPath(inputPath) {
-    command_1.issueCommand('add-path', {}, inputPath);
+    const filePath = process.env['GITHUB_PATH'] || '';
+    if (filePath) {
+        file_command_1.issueCommand('PATH', inputPath);
+    }
+    else {
+        command_1.issueCommand('add-path', {}, inputPath);
+    }
     process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
 }
 exports.addPath = addPath;
@@ -14508,14 +13788,15 @@ module.exports = /^#!.*/;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scan = exports.ScanIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class ScanIterable extends iterablex_1.IterableX {
-    constructor(source, fn, seed) {
+    constructor(source, options) {
         super();
         this._source = source;
-        this._fn = fn;
-        this._hasSeed = seed.length === 1;
-        this._seed = seed[0];
+        this._fn = options['callback'];
+        this._hasSeed = options.hasOwnProperty('seed');
+        this._seed = options['seed'];
     }
     *[Symbol.iterator]() {
         let i = 0;
@@ -14538,9 +13819,16 @@ class ScanIterable extends iterablex_1.IterableX {
     }
 }
 exports.ScanIterable = ScanIterable;
-function scan(accumulator, ...seed) {
+function scan(optionsOrAccumulator, seed) {
+    const options = 
+    // eslint-disable-next-line no-nested-ternary
+    typeof optionsOrAccumulator === 'function'
+        ? arguments.length > 1
+            ? { 'callback': optionsOrAccumulator, 'seed': seed }
+            : { 'callback': optionsOrAccumulator }
+        : optionsOrAccumulator;
     return function scanOperatorFunction(source) {
-        return new ScanIterable(source, accumulator, seed);
+        return new ScanIterable(source, options);
     };
 }
 exports.scan = scan;
@@ -14631,8 +13919,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function debounce(durationSelector) {
     return function (source) { return source.lift(new DebounceOperator(durationSelector)); };
 }
@@ -14652,7 +13939,6 @@ var DebounceSubscriber = (function (_super) {
         var _this = _super.call(this, destination) || this;
         _this.durationSelector = durationSelector;
         _this.hasValue = false;
-        _this.durationSubscription = null;
         return _this;
     }
     DebounceSubscriber.prototype._next = function (value) {
@@ -14678,12 +13964,12 @@ var DebounceSubscriber = (function (_super) {
             subscription.unsubscribe();
             this.remove(subscription);
         }
-        subscription = subscribeToResult_1.subscribeToResult(this, duration);
+        subscription = innerSubscribe_1.innerSubscribe(duration, new innerSubscribe_1.SimpleInnerSubscriber(this));
         if (subscription && !subscription.closed) {
             this.add(this.durationSubscription = subscription);
         }
     };
-    DebounceSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    DebounceSubscriber.prototype.notifyNext = function () {
         this.emitValue();
     };
     DebounceSubscriber.prototype.notifyComplete = function () {
@@ -14694,17 +13980,17 @@ var DebounceSubscriber = (function (_super) {
             var value = this.value;
             var subscription = this.durationSubscription;
             if (subscription) {
-                this.durationSubscription = null;
+                this.durationSubscription = undefined;
                 subscription.unsubscribe();
                 this.remove(subscription);
             }
-            this.value = null;
+            this.value = undefined;
             this.hasValue = false;
             _super.prototype._next.call(this, value);
         }
     };
     return DebounceSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=debounce.js.map
 
 /***/ }),
@@ -14714,6 +14000,7 @@ var DebounceSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.catchError = exports.CatchWithIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const returniterator_1 = __webpack_require__(764);
 class CatchWithIterable extends iterablex_1.IterableX {
@@ -14727,10 +14014,11 @@ class CatchWithIterable extends iterablex_1.IterableX {
         let hasError = false;
         const it = this._source[Symbol.iterator]();
         while (1) {
-            let c = {};
+            let done;
+            let value;
             try {
-                c = it.next();
-                if (c.done) {
+                ({ done, value } = it.next());
+                if (done) {
                     returniterator_1.returnIterator(it);
                     break;
                 }
@@ -14741,7 +14029,7 @@ class CatchWithIterable extends iterablex_1.IterableX {
                 returniterator_1.returnIterator(it);
                 break;
             }
-            yield c.value;
+            yield value;
         }
         if (hasError) {
             for (const item of err) {
@@ -14751,6 +14039,17 @@ class CatchWithIterable extends iterablex_1.IterableX {
     }
 }
 exports.CatchWithIterable = CatchWithIterable;
+/**
+ * Continues an async-iterable sequence that is terminated by an exception with the
+ * async-iterable sequence produced by the handler.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TResult The type of elements from the handler function.
+ * @param {(error: any) => Iterable<TResult>} handler Error handler function, producing another async-iterable sequence.
+ * @returns {(OperatorFunction<TSource, TSource | TResult>)} An operator which continues an async-iterable sequence that is terminated by
+ * an exception with the specified handler.
+ */
 function catchError(handler) {
     return function catchWithOperatorFunction(source) {
         return new CatchWithIterable(source, handler);
@@ -14769,6 +14068,7 @@ exports.catchError = catchError;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.equalityComparerAsync = exports.equalityComparer = exports.comparerAsync = exports.comparer = void 0;
 /**
  * @ignore
  */
@@ -14783,6 +14083,22 @@ async function comparerAsync(x, y) {
     return x === y || (typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y));
 }
 exports.comparerAsync = comparerAsync;
+/**
+ * @ignore
+ */
+function equalityComparer(key, minValue) {
+    // eslint-disable-next-line no-nested-ternary
+    return key > minValue ? 1 : key < minValue ? -1 : 0;
+}
+exports.equalityComparer = equalityComparer;
+/**
+ * @ignore
+ */
+async function equalityComparerAsync(key, minValue) {
+    // eslint-disable-next-line no-nested-ternary
+    return key > minValue ? 1 : key < minValue ? -1 : 0;
+}
+exports.equalityComparerAsync = equalityComparerAsync;
 
 //# sourceMappingURL=comparer.js.map
 
@@ -14835,16 +14151,20 @@ var ReplaySubject = (function (_super) {
         return _this;
     }
     ReplaySubject.prototype.nextInfiniteTimeWindow = function (value) {
-        var _events = this._events;
-        _events.push(value);
-        if (_events.length > this._bufferSize) {
-            _events.shift();
+        if (!this.isStopped) {
+            var _events = this._events;
+            _events.push(value);
+            if (_events.length > this._bufferSize) {
+                _events.shift();
+            }
         }
         _super.prototype.next.call(this, value);
     };
     ReplaySubject.prototype.nextTimeWindow = function (value) {
-        this._events.push(new ReplayEvent(this._getNow(), value));
-        this._trimBufferThenGetEvents();
+        if (!this.isStopped) {
+            this._events.push(new ReplayEvent(this._getNow(), value));
+            this._trimBufferThenGetEvents();
+        }
         _super.prototype.next.call(this, value);
     };
     ReplaySubject.prototype._subscribe = function (subscriber) {
@@ -14937,6 +14257,7 @@ exports.isArray = (function () { return Array.isArray || (function (x) { return 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.as = void 0;
 const iterablex_1 = __webpack_require__(954);
 const from_1 = __webpack_require__(166);
 const isiterable_1 = __webpack_require__(35);
@@ -14982,9 +14303,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function skipUntil(notifier) {
     return function (source) { return source.lift(new SkipUntilOperator(notifier)); };
 }
@@ -15003,10 +14322,10 @@ var SkipUntilSubscriber = (function (_super) {
     function SkipUntilSubscriber(destination, notifier) {
         var _this = _super.call(this, destination) || this;
         _this.hasValue = false;
-        var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(_this, undefined, undefined);
+        var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(_this);
         _this.add(innerSubscriber);
         _this.innerSubscription = innerSubscriber;
-        var innerSubscription = subscribeToResult_1.subscribeToResult(_this, notifier, undefined, undefined, innerSubscriber);
+        var innerSubscription = innerSubscribe_1.innerSubscribe(notifier, innerSubscriber);
         if (innerSubscription !== innerSubscriber) {
             _this.add(innerSubscription);
             _this.innerSubscription = innerSubscription;
@@ -15018,7 +14337,7 @@ var SkipUntilSubscriber = (function (_super) {
             _super.prototype._next.call(this, value);
         }
     };
-    SkipUntilSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    SkipUntilSubscriber.prototype.notifyNext = function () {
         this.hasValue = true;
         if (this.innerSubscription) {
             this.innerSubscription.unsubscribe();
@@ -15027,35 +14346,11 @@ var SkipUntilSubscriber = (function (_super) {
     SkipUntilSubscriber.prototype.notifyComplete = function () {
     };
     return SkipUntilSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=skipUntil.js.map
 
 /***/ }),
-/* 498 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-async function average(source, selector = identity_1.identityAsync) {
-    let sum = 0;
-    let count = 0;
-    for await (const item of source) {
-        sum += await selector(item);
-        count++;
-    }
-    if (count === 0) {
-        throw new Error('Empty collection');
-    }
-    return sum / count;
-}
-exports.average = average;
-
-//# sourceMappingURL=average.js.map
-
-
-/***/ }),
+/* 498 */,
 /* 499 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -15119,6 +14414,7 @@ module.exports = coerce
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toLength = void 0;
 const tointeger_1 = __webpack_require__(209);
 const maxSafeInteger = Math.pow(2, 53) - 1;
 /**
@@ -15141,6 +14437,7 @@ exports.toLength = toLength;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.skipLast = exports.SkipLastIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class SkipLastIterable extends iterablex_1.IterableX {
     constructor(source, count) {
@@ -15159,6 +14456,15 @@ class SkipLastIterable extends iterablex_1.IterableX {
     }
 }
 exports.SkipLastIterable = SkipLastIterable;
+/**
+ * Bypasses a specified number of elements at the end of an iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} count Number of elements to bypass at the end of the source sequence.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable sequence containing the
+ * source sequence elements except for the bypassed ones at the end.
+ */
 function skipLast(count) {
     return function skipLastOperatorFunction(source) {
         return new SkipLastIterable(source, count);
@@ -15288,6 +14594,7 @@ exports.switchAll = switchAll;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.AsyncSink = void 0;
 const ARRAY_VALUE = 'value';
 const ARRAY_ERROR = 'error';
 class AsyncSink {
@@ -15501,50 +14808,7 @@ var WindowToggleSubscriber = (function (_super) {
 //# sourceMappingURL=windowToggle.js.map
 
 /***/ }),
-/* 508 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-class SliceIterable extends iterablex_1.IterableX {
-    constructor(source, begin, end) {
-        super();
-        this._source = source;
-        this._begin = begin;
-        this._end = end;
-    }
-    *[Symbol.iterator]() {
-        const it = this._source[Symbol.iterator]();
-        let begin = this._begin;
-        let next;
-        while (begin > 0 && !(next = it.next()).done) {
-            begin--;
-        }
-        let end = this._end;
-        if (end > 0) {
-            while (!(next = it.next()).done) {
-                yield next.value;
-                if (--end === 0) {
-                    break;
-                }
-            }
-        }
-    }
-}
-exports.SliceIterable = SliceIterable;
-function slice(begin, end = Infinity) {
-    return function sliceOperatorFunction(source) {
-        return new SliceIterable(source, begin, end);
-    };
-}
-exports.slice = slice;
-
-//# sourceMappingURL=slice.js.map
-
-
-/***/ }),
+/* 508 */,
 /* 509 */,
 /* 510 */
 /***/ (function(module) {
@@ -15745,6 +15009,7 @@ exports.dispatch = dispatch;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.skipWhile = exports.SkipWhileIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class SkipWhileIterable extends iterablex_1.IterableX {
     constructor(source, predicate) {
@@ -15766,6 +15031,16 @@ class SkipWhileIterable extends iterablex_1.IterableX {
     }
 }
 exports.SkipWhileIterable = SkipWhileIterable;
+/**
+ * Bypasses elements in an async-iterale sequence as long as a specified condition is true
+ * and then returns the remaining elements.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {((value: T, index: number) => boolean)} predicate A function to test each element for a condition.
+ * @returns {OperatorFunction<T, T>} An iterable sequence that contains the elements from the input
+ * sequence starting at the first element in the linear series that does not pass the test specified by predicate.
+ */
 function skipWhile(predicate) {
     return function skipWhileOperatorFunction(source) {
         return new SkipWhileIterable(source, predicate);
@@ -15817,6 +15092,7 @@ exports.TimeInterval = TimeInterval;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.endWith = exports.EndWithIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class EndWithIterable extends iterablex_1.IterableX {
     constructor(source, args) {
@@ -15834,6 +15110,14 @@ class EndWithIterable extends iterablex_1.IterableX {
     }
 }
 exports.EndWithIterable = EndWithIterable;
+/**
+ * Append values to an iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {...TSource[]} args The values to append to the end of the iterable sequence.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator which appends values to the end of the sequence.
+ */
 function endWith(...args) {
     return function endsWithOperatorFunction(source) {
         return new EndWithIterable(source, args);
@@ -16010,7 +15294,16 @@ module.exports.Collection = Hook.Collection
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.concatAll = void 0;
 const concat_1 = __webpack_require__(805);
+/**
+ * Concatenates all inner iterable sequences, as long as the previous
+ * iterable sequence terminated successfully.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @returns {OperatorFunction<Iterable<T>, T>} An operator which concatenates all inner iterable sources.
+ */
 function concatAll() {
     return function concatAllOperatorFunction(source) {
         return new concat_1.ConcatIterable(source);
@@ -16023,25 +15316,7 @@ exports.concatAll = concatAll;
 
 /***/ }),
 /* 532 */,
-/* 533 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function toSet(source) {
-    const set = new Set();
-    for await (const item of source) {
-        set.add(item);
-    }
-    return set;
-}
-exports.toSet = toSet;
-
-//# sourceMappingURL=toset.js.map
-
-
-/***/ }),
+/* 533 */,
 /* 534 */,
 /* 535 */,
 /* 536 */,
@@ -16072,7 +15347,6 @@ exports.publishReplay = publishReplay;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const url = __webpack_require__(835);
 const http = __webpack_require__(605);
 const https = __webpack_require__(211);
 const pm = __webpack_require__(950);
@@ -16121,7 +15395,7 @@ var MediaTypes;
  * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
  */
 function getProxyUrl(serverUrl) {
-    let proxyUrl = pm.getProxyUrl(url.parse(serverUrl));
+    let proxyUrl = pm.getProxyUrl(new URL(serverUrl));
     return proxyUrl ? proxyUrl.href : '';
 }
 exports.getProxyUrl = getProxyUrl;
@@ -16140,6 +15414,15 @@ const HttpResponseRetryCodes = [
 const RetryableHttpVerbs = ['OPTIONS', 'GET', 'DELETE', 'HEAD'];
 const ExponentialBackoffCeiling = 10;
 const ExponentialBackoffTimeSlice = 5;
+class HttpClientError extends Error {
+    constructor(message, statusCode) {
+        super(message);
+        this.name = 'HttpClientError';
+        this.statusCode = statusCode;
+        Object.setPrototypeOf(this, HttpClientError.prototype);
+    }
+}
+exports.HttpClientError = HttpClientError;
 class HttpClientResponse {
     constructor(message) {
         this.message = message;
@@ -16158,7 +15441,7 @@ class HttpClientResponse {
 }
 exports.HttpClientResponse = HttpClientResponse;
 function isHttps(requestUrl) {
-    let parsedUrl = url.parse(requestUrl);
+    let parsedUrl = new URL(requestUrl);
     return parsedUrl.protocol === 'https:';
 }
 exports.isHttps = isHttps;
@@ -16263,7 +15546,7 @@ class HttpClient {
         if (this._disposed) {
             throw new Error('Client has already been disposed.');
         }
-        let parsedUrl = url.parse(requestUrl);
+        let parsedUrl = new URL(requestUrl);
         let info = this._prepareRequest(verb, parsedUrl, headers);
         // Only perform retries on reads since writes may not be idempotent.
         let maxTries = this._allowRetries && RetryableHttpVerbs.indexOf(verb) != -1
@@ -16302,7 +15585,7 @@ class HttpClient {
                     // if there's no location to redirect to, we won't
                     break;
                 }
-                let parsedRedirectUrl = url.parse(redirectUrl);
+                let parsedRedirectUrl = new URL(redirectUrl);
                 if (parsedUrl.protocol == 'https:' &&
                     parsedUrl.protocol != parsedRedirectUrl.protocol &&
                     !this._allowRedirectDowngrade) {
@@ -16418,7 +15701,7 @@ class HttpClient {
      * @param serverUrl  The server URL where the request will be sent. For example, https://api.github.com
      */
     getAgent(serverUrl) {
-        let parsedUrl = url.parse(serverUrl);
+        let parsedUrl = new URL(serverUrl);
         return this._getAgent(parsedUrl);
     }
     _prepareRequest(method, requestUrl, headers) {
@@ -16491,7 +15774,7 @@ class HttpClient {
                 maxSockets: maxSockets,
                 keepAlive: this._keepAlive,
                 proxy: {
-                    proxyAuth: proxyUrl.auth,
+                    proxyAuth: `${proxyUrl.username}:${proxyUrl.password}`,
                     host: proxyUrl.hostname,
                     port: proxyUrl.port
                 }
@@ -16586,12 +15869,8 @@ class HttpClient {
                 else {
                     msg = 'Failed request: (' + statusCode + ')';
                 }
-                let err = new Error(msg);
-                // attach statusCode and body obj (if available) to the error object
-                err['statusCode'] = statusCode;
-                if (response.result) {
-                    err['result'] = response.result;
-                }
+                let err = new HttpClientError(msg, statusCode);
+                err.result = response.result;
                 reject(err);
             }
             else {
@@ -16739,6 +16018,7 @@ module.exports = resolveCommand;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toDOMStreamProto = exports.toDOMStream = void 0;
 const publish_1 = __webpack_require__(899);
 const fromdomstream_1 = __webpack_require__(601);
 const asynciterablex_1 = __webpack_require__(346);
@@ -16856,6 +16136,11 @@ const asyncIterableReadableStream = (() => {
     };
     return (source, opts) => createAsyncIterableReadableStream(source, opts);
 })();
+/**
+ * Converts an async-iterable stream to a DOM stream.
+ * @param source The async-iterable stream to convert to a DOM stream.
+ * @param options The options to apply to the DOM stream.
+ */
 function toDOMStream(source, options) {
     if (!options || !('type' in options) || options['type'] !== 'bytes') {
         return asyncIterableReadableStream(new UnderlyingAsyncIterableDefaultSource(source[Symbol.asyncIterator]()), options);
@@ -17086,72 +16371,7 @@ function emptyScheduled(scheduler) {
 
 /***/ }),
 /* 554 */,
-/* 555 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(422);
-tslib_1.__exportStar(__webpack_require__(342), exports);
-tslib_1.__exportStar(__webpack_require__(32), exports);
-tslib_1.__exportStar(__webpack_require__(432), exports);
-tslib_1.__exportStar(__webpack_require__(346), exports);
-tslib_1.__exportStar(__webpack_require__(506), exports);
-tslib_1.__exportStar(__webpack_require__(498), exports);
-tslib_1.__exportStar(__webpack_require__(624), exports);
-tslib_1.__exportStar(__webpack_require__(108), exports);
-tslib_1.__exportStar(__webpack_require__(674), exports);
-tslib_1.__exportStar(__webpack_require__(940), exports);
-tslib_1.__exportStar(__webpack_require__(414), exports);
-tslib_1.__exportStar(__webpack_require__(382), exports);
-tslib_1.__exportStar(__webpack_require__(737), exports);
-tslib_1.__exportStar(__webpack_require__(349), exports);
-tslib_1.__exportStar(__webpack_require__(727), exports);
-tslib_1.__exportStar(__webpack_require__(300), exports);
-tslib_1.__exportStar(__webpack_require__(249), exports);
-tslib_1.__exportStar(__webpack_require__(73), exports);
-tslib_1.__exportStar(__webpack_require__(684), exports);
-tslib_1.__exportStar(__webpack_require__(601), exports);
-tslib_1.__exportStar(__webpack_require__(343), exports);
-tslib_1.__exportStar(__webpack_require__(112), exports);
-tslib_1.__exportStar(__webpack_require__(434), exports);
-tslib_1.__exportStar(__webpack_require__(573), exports);
-tslib_1.__exportStar(__webpack_require__(777), exports);
-tslib_1.__exportStar(__webpack_require__(874), exports);
-tslib_1.__exportStar(__webpack_require__(890), exports);
-tslib_1.__exportStar(__webpack_require__(567), exports);
-tslib_1.__exportStar(__webpack_require__(447), exports);
-tslib_1.__exportStar(__webpack_require__(851), exports);
-tslib_1.__exportStar(__webpack_require__(731), exports);
-tslib_1.__exportStar(__webpack_require__(636), exports);
-tslib_1.__exportStar(__webpack_require__(243), exports);
-tslib_1.__exportStar(__webpack_require__(995), exports);
-tslib_1.__exportStar(__webpack_require__(31), exports);
-tslib_1.__exportStar(__webpack_require__(963), exports);
-tslib_1.__exportStar(__webpack_require__(157), exports);
-tslib_1.__exportStar(__webpack_require__(51), exports);
-tslib_1.__exportStar(__webpack_require__(956), exports);
-tslib_1.__exportStar(__webpack_require__(732), exports);
-tslib_1.__exportStar(__webpack_require__(94), exports);
-tslib_1.__exportStar(__webpack_require__(443), exports);
-tslib_1.__exportStar(__webpack_require__(26), exports);
-tslib_1.__exportStar(__webpack_require__(756), exports);
-tslib_1.__exportStar(__webpack_require__(355), exports);
-tslib_1.__exportStar(__webpack_require__(115), exports);
-tslib_1.__exportStar(__webpack_require__(449), exports);
-tslib_1.__exportStar(__webpack_require__(119), exports);
-tslib_1.__exportStar(__webpack_require__(546), exports);
-tslib_1.__exportStar(__webpack_require__(982), exports);
-tslib_1.__exportStar(__webpack_require__(755), exports);
-tslib_1.__exportStar(__webpack_require__(533), exports);
-tslib_1.__exportStar(__webpack_require__(314), exports);
-tslib_1.__exportStar(__webpack_require__(348), exports);
-
-//# sourceMappingURL=index.js.map
-
-
-/***/ }),
+/* 555 */,
 /* 556 */,
 /* 557 */,
 /* 558 */,
@@ -17235,26 +16455,40 @@ function defaultErrorFactory() {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.flatMap = exports.FlatMapIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const bindcallback_1 = __webpack_require__(270);
 class FlatMapIterable extends iterablex_1.IterableX {
-    constructor(source, fn) {
+    constructor(source, fn, thisArg) {
         super();
         this._source = source;
         this._fn = fn;
+        this._thisArg = thisArg;
     }
     *[Symbol.iterator]() {
+        let index = 0;
         for (const outerItem of this._source) {
-            for (const innerItem of this._fn(outerItem)) {
+            for (const innerItem of this._fn.call(this._thisArg, outerItem, index++)) {
                 yield innerItem;
             }
         }
     }
 }
 exports.FlatMapIterable = FlatMapIterable;
+/**
+ * Projects each element of an iterable sequence to an iterable sequence and merges
+ * the resulting iterable sequences into one iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TResult The type of the elements in the projected inner sequences and the elements in the merged result sequence.
+ * @param {((value: TSource, index: number) => Iterable<TResult>)} selector A transform function to apply to each element.
+ * @param {*} [thisArg] Option this for binding to the selector.
+ * @returns {OperatorFunction<TSource, TResult>} An operator that creates an iterable sequence whose
+ * elements are the result of invoking the one-to-many transform function on each element of the input sequence.
+ */
 function flatMap(selector, thisArg) {
     return function flatMapOperatorFunction(source) {
-        return new FlatMapIterable(source, bindcallback_1.bindCallback(selector, thisArg, 1));
+        return new FlatMapIterable(source, selector, thisArg);
     };
 }
 exports.flatMap = flatMap;
@@ -17487,36 +16721,7 @@ module.exports = opts => {
 
 /***/ }),
 /* 566 */,
-/* 567 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const _sleep_1 = __webpack_require__(113);
-class IntervalAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(dueTime) {
-        super();
-        this._dueTime = dueTime;
-    }
-    async *[Symbol.asyncIterator]() {
-        let i = 0;
-        while (1) {
-            await _sleep_1.sleep(this._dueTime);
-            yield i++;
-        }
-    }
-}
-function interval(dueTime) {
-    return new IntervalAsyncIterable(dueTime);
-}
-exports.interval = interval;
-
-//# sourceMappingURL=interval.js.map
-
-
-/***/ }),
+/* 567 */,
 /* 568 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -17562,16 +16767,37 @@ exports.subscribeTo = function (result) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const filter_1 = __webpack_require__(693);
-const bindcallback_1 = __webpack_require__(270);
-function partition(source, predicate, thisArg) {
-    const cb = bindcallback_1.bindCallback(predicate, thisArg, 2);
-    const notCb = bindcallback_1.bindCallback((value, index) => !predicate(value, index), thisArg, 2);
-    return [new filter_1.FilterIterable(source, cb), new filter_1.FilterIterable(source, notCb)];
+exports.toDOMStreamProto = exports.toDOMStream = void 0;
+const from_1 = __webpack_require__(434);
+const publish_1 = __webpack_require__(963);
+const iterablex_1 = __webpack_require__(954);
+const todomstream_1 = __webpack_require__(546);
+function toDOMStream(source, options) {
+    if (!options || !('type' in options) || options['type'] !== 'bytes') {
+        return todomstream_1.toDOMStream(from_1.from(source), options);
+    }
+    return todomstream_1.toDOMStream(from_1.from(source), options);
 }
-exports.partition = partition;
+exports.toDOMStream = toDOMStream;
+iterablex_1.IterableX.prototype.tee = function () {
+    return _getDOMStream(this).tee();
+};
+iterablex_1.IterableX.prototype.pipeTo = function (writable, options) {
+    return _getDOMStream(this).pipeTo(writable, options);
+};
+iterablex_1.IterableX.prototype.pipeThrough = function (duplex, options) {
+    return _getDOMStream(this).pipeThrough(duplex, options);
+};
+function _getDOMStream(self) {
+    return self._DOMStream || (self._DOMStream = self.pipe(publish_1.publish(), toDOMStream));
+}
+function toDOMStreamProto(options) {
+    return !options ? toDOMStream(this) : toDOMStream(this, options);
+}
+exports.toDOMStreamProto = toDOMStreamProto;
+iterablex_1.IterableX.prototype.toDOMStream = toDOMStreamProto;
 
-//# sourceMappingURL=partition.js.map
+//# sourceMappingURL=todomstream.js.map
 
 
 /***/ }),
@@ -17645,7 +16871,7 @@ var RaceSubscriber = (function (_super) {
         else {
             for (var i = 0; i < len && !this.hasFirst; i++) {
                 var observable = observables[i];
-                var subscription = subscribeToResult_1.subscribeToResult(this, observable, observable, i);
+                var subscription = subscribeToResult_1.subscribeToResult(this, observable, undefined, i);
                 if (this.subscriptions) {
                     this.subscriptions.push(subscription);
                 }
@@ -17654,7 +16880,7 @@ var RaceSubscriber = (function (_super) {
             this.observables = null;
         }
     };
-    RaceSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    RaceSubscriber.prototype.notifyNext = function (_outerValue, innerValue, outerIndex) {
         if (!this.hasFirst) {
             this.hasFirst = true;
             for (var i = 0; i < this.subscriptions.length; i++) {
@@ -17674,40 +16900,7 @@ exports.RaceSubscriber = RaceSubscriber;
 //# sourceMappingURL=race.js.map
 
 /***/ }),
-/* 573 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const _sleep_1 = __webpack_require__(113);
-class GenerateTimeAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(initialState, condition, iterate, resultSelector, timeSelector) {
-        super();
-        this._initialState = initialState;
-        this._condition = condition;
-        this._iterate = iterate;
-        this._resultSelector = resultSelector;
-        this._timeSelector = timeSelector;
-    }
-    async *[Symbol.asyncIterator]() {
-        for (let i = this._initialState; await this._condition(i); i = await this._iterate(i)) {
-            const time = await this._timeSelector(i);
-            await _sleep_1.sleep(time);
-            yield await this._resultSelector(i);
-        }
-    }
-}
-function generateTime(initialState, condition, iterate, resultSelector, timeSelector) {
-    return new GenerateTimeAsyncIterable(initialState, condition, iterate, resultSelector, timeSelector);
-}
-exports.generateTime = generateTime;
-
-//# sourceMappingURL=generatetime.js.map
-
-
-/***/ }),
+/* 573 */,
 /* 574 */,
 /* 575 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -17757,9 +16950,10 @@ exports.fromEventPattern = fromEventPattern;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.distinct = exports.DistinctIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const identity_1 = __webpack_require__(296);
-const arrayindexof_1 = __webpack_require__(117);
+const arrayindexof_1 = __webpack_require__(157);
 const comparer_1 = __webpack_require__(492);
 class DistinctIterable extends iterablex_1.IterableX {
     constructor(source, keySelector, cmp) {
@@ -17780,8 +16974,18 @@ class DistinctIterable extends iterablex_1.IterableX {
     }
 }
 exports.DistinctIterable = DistinctIterable;
-function distinct(keySelector = identity_1.identity, comparer = comparer_1.comparer) {
+/**
+ * Returns an iterable sequence that contains only distinct elements according to the keySelector and comparer.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TKey The type of the discriminator key computed for each element in the source sequence.
+ * @param {DistinctOptions<TSource, TKey>} [options] The optional arguments for a key selector and comparer function.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns distinct elements according to the keySelector and options.
+ */
+function distinct(options) {
     return function distinctOperatorFunction(source) {
+        const { ['keySelector']: keySelector = identity_1.identity, ['comparer']: comparer = comparer_1.comparer } = options || {};
         return new DistinctIterable(source, keySelector, comparer);
     };
 }
@@ -17827,9 +17031,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function catchError(selector) {
     return function catchErrorOperatorFunction(source) {
         var operator = new CatchOperator(selector);
@@ -17866,16 +17068,16 @@ var CatchSubscriber = (function (_super) {
                 return;
             }
             this._unsubscribeAndRecycle();
-            var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, undefined, undefined);
+            var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
             this.add(innerSubscriber);
-            var innerSubscription = subscribeToResult_1.subscribeToResult(this, result, undefined, undefined, innerSubscriber);
+            var innerSubscription = innerSubscribe_1.innerSubscribe(result, innerSubscriber);
             if (innerSubscription !== innerSubscriber) {
                 this.add(innerSubscription);
             }
         }
     };
     return CatchSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=catchError.js.map
 
 /***/ }),
@@ -17887,6 +17089,7 @@ var CatchSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.skip = exports.SkipIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class SkipIterable extends iterablex_1.IterableX {
     constructor(source, count) {
@@ -17909,6 +17112,15 @@ class SkipIterable extends iterablex_1.IterableX {
     }
 }
 exports.SkipIterable = SkipIterable;
+/**
+ * Bypasses a specified number of elements in an iterable sequence and then returns the remaining elements.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} count The number of elements to skip before returning the remaining elements.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable sequence that contains the elements that
+ * occur after the specified index in the input sequence.
+ */
 function skip(count) {
     return function skipOperatorFunction(source) {
         return new SkipIterable(source, count);
@@ -17926,29 +17138,37 @@ exports.skip = skip;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterable_1 = __webpack_require__(555);
-const bindcallback_1 = __webpack_require__(270);
-class FilterIterable extends asynciterable_1.AsyncIterableX {
-    constructor(source, predicate) {
+exports.ignoreElements = exports.IgnoreElementsIterable = void 0;
+const iterablex_1 = __webpack_require__(954);
+class IgnoreElementsIterable extends iterablex_1.IterableX {
+    constructor(source) {
         super();
         this._source = source;
-        this._predicate = predicate;
     }
-    async *[Symbol.asyncIterator]() {
-        let i = 0;
-        for await (const item of this._source) {
-            if (await this._predicate(item, i++)) {
-                yield item;
-            }
+    *[Symbol.iterator]() {
+        const it = this._source[Symbol.iterator]();
+        while (!it.next().done) {
+            /* intentionally empty */
         }
     }
 }
-function filterAsync(source, predicate, thisArg) {
-    return new FilterIterable(source, bindcallback_1.bindCallback(predicate, thisArg, 2));
+exports.IgnoreElementsIterable = IgnoreElementsIterable;
+/**
+ * Ignores all elements in an iterable sequence leaving only the termination messages.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns an empty iterable sequence
+ * that signals termination, successful or exceptional, of the source sequence.
+ */
+function ignoreElements() {
+    return function ignoreElementsOperatorFunction(source) {
+        return new IgnoreElementsIterable(source);
+    };
 }
-exports.filterAsync = filterAsync;
+exports.ignoreElements = ignoreElements;
 
-//# sourceMappingURL=filterasync.js.map
+//# sourceMappingURL=ignoreelements.js.map
 
 
 /***/ }),
@@ -18025,11 +17245,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
-var subscribeToResult_1 = __webpack_require__(591);
 var map_1 = __webpack_require__(802);
 var from_1 = __webpack_require__(997);
+var innerSubscribe_1 = __webpack_require__(938);
 function switchMap(project, resultSelector) {
     if (typeof resultSelector === 'function') {
         return function (source) { return source.pipe(switchMap(function (a, i) { return from_1.from(project(a, i)).pipe(map_1.map(function (b, ii) { return resultSelector(a, b, i, ii); })); })); };
@@ -18064,17 +17282,17 @@ var SwitchMapSubscriber = (function (_super) {
             this.destination.error(error);
             return;
         }
-        this._innerSub(result, value, index);
+        this._innerSub(result);
     };
-    SwitchMapSubscriber.prototype._innerSub = function (result, value, index) {
+    SwitchMapSubscriber.prototype._innerSub = function (result) {
         var innerSubscription = this.innerSubscription;
         if (innerSubscription) {
             innerSubscription.unsubscribe();
         }
-        var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, value, index);
+        var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
         var destination = this.destination;
         destination.add(innerSubscriber);
-        this.innerSubscription = subscribeToResult_1.subscribeToResult(this, result, undefined, undefined, innerSubscriber);
+        this.innerSubscription = innerSubscribe_1.innerSubscribe(result, innerSubscriber);
         if (this.innerSubscription !== innerSubscriber) {
             destination.add(this.innerSubscription);
         }
@@ -18087,21 +17305,19 @@ var SwitchMapSubscriber = (function (_super) {
         this.unsubscribe();
     };
     SwitchMapSubscriber.prototype._unsubscribe = function () {
-        this.innerSubscription = null;
+        this.innerSubscription = undefined;
     };
-    SwitchMapSubscriber.prototype.notifyComplete = function (innerSub) {
-        var destination = this.destination;
-        destination.remove(innerSub);
-        this.innerSubscription = null;
+    SwitchMapSubscriber.prototype.notifyComplete = function () {
+        this.innerSubscription = undefined;
         if (this.isStopped) {
             _super.prototype._complete.call(this);
         }
     };
-    SwitchMapSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    SwitchMapSubscriber.prototype.notifyNext = function (innerValue) {
         this.destination.next(innerValue);
     };
     return SwitchMapSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=switchMap.js.map
 
 /***/ }),
@@ -18131,37 +17347,11 @@ exports.subscribeToResult = subscribeToResult;
 /***/ }),
 /* 592 */,
 /* 593 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class FilterAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(source, predicate, thisArg) {
-        super();
-        this._source = source;
-        this._predicate = predicate;
-        this._thisArg = thisArg;
-    }
-    async *[Symbol.asyncIterator]() {
-        let i = 0;
-        for await (const item of this._source) {
-            if (await this._predicate.call(this._thisArg, item, i++)) {
-                yield item;
-            }
-        }
-    }
-}
-exports.FilterAsyncIterable = FilterAsyncIterable;
-function filter(predicate, thisArg) {
-    return function filterOperatorFunction(source) {
-        return new FilterAsyncIterable(source, predicate, thisArg);
-    };
-}
-exports.filter = filter;
-
-//# sourceMappingURL=filter.js.map
+const compareBuild = __webpack_require__(212)
+const rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose))
+module.exports = rsort
 
 
 /***/ }),
@@ -18270,6 +17460,7 @@ var PairwiseSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.fromDOMStream = exports.AsyncIterableReadableByteStream = exports.AsyncIterableReadableStream = void 0;
 const asynciterablex_1 = __webpack_require__(346);
 /** @ignore */
 const SharedArrayBuf = typeof SharedArrayBuffer !== 'undefined' ? SharedArrayBuffer : ArrayBuffer;
@@ -18377,6 +17568,14 @@ async function readInto(reader, buffer, offset, size) {
     }
     return { done, value: new Uint8Array(value.buffer, 0, innerOffset) };
 }
+/**
+ * Creates an async-iterable from an existing DOM stream and optional options.
+ *
+ * @export
+ * @param {ReadableStream} stream The readable stream to convert to an async-iterable.
+ * @param {{ mode: 'byob' }} [options] The optional options to set the mode for the DOM stream.
+ * @returns {AsyncIterableX<any>} An async-iterable created from the incoming async-iterable.
+ */
 function fromDOMStream(stream, options) {
     return !options || options.mode !== 'byob'
         ? new AsyncIterableReadableStream(stream)
@@ -19929,8 +19128,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Subject_1 = __webpack_require__(564);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function window(windowBoundaries) {
     return function windowOperatorFunction(source) {
         return source.lift(new WindowOperator(windowBoundaries));
@@ -19945,7 +19143,7 @@ var WindowOperator = (function () {
         var windowSubscriber = new WindowSubscriber(subscriber);
         var sourceSubscription = source.subscribe(windowSubscriber);
         if (!sourceSubscription.closed) {
-            windowSubscriber.add(subscribeToResult_1.subscribeToResult(windowSubscriber, this.windowBoundaries));
+            windowSubscriber.add(innerSubscribe_1.innerSubscribe(this.windowBoundaries, new innerSubscribe_1.SimpleInnerSubscriber(windowSubscriber)));
         }
         return sourceSubscription;
     };
@@ -19959,13 +19157,13 @@ var WindowSubscriber = (function (_super) {
         destination.next(_this.window);
         return _this;
     }
-    WindowSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    WindowSubscriber.prototype.notifyNext = function () {
         this.openWindow();
     };
-    WindowSubscriber.prototype.notifyError = function (error, innerSub) {
+    WindowSubscriber.prototype.notifyError = function (error) {
         this._error(error);
     };
-    WindowSubscriber.prototype.notifyComplete = function (innerSub) {
+    WindowSubscriber.prototype.notifyComplete = function () {
         this._complete();
     };
     WindowSubscriber.prototype._next = function (value) {
@@ -19992,17 +19190,450 @@ var WindowSubscriber = (function (_super) {
         destination.next(newWindow);
     };
     return WindowSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=window.js.map
 
 /***/ }),
-/* 612 */,
+/* 612 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+module.exports = Yallist
+
+Yallist.Node = Node
+Yallist.create = Yallist
+
+function Yallist (list) {
+  var self = this
+  if (!(self instanceof Yallist)) {
+    self = new Yallist()
+  }
+
+  self.tail = null
+  self.head = null
+  self.length = 0
+
+  if (list && typeof list.forEach === 'function') {
+    list.forEach(function (item) {
+      self.push(item)
+    })
+  } else if (arguments.length > 0) {
+    for (var i = 0, l = arguments.length; i < l; i++) {
+      self.push(arguments[i])
+    }
+  }
+
+  return self
+}
+
+Yallist.prototype.removeNode = function (node) {
+  if (node.list !== this) {
+    throw new Error('removing node which does not belong to this list')
+  }
+
+  var next = node.next
+  var prev = node.prev
+
+  if (next) {
+    next.prev = prev
+  }
+
+  if (prev) {
+    prev.next = next
+  }
+
+  if (node === this.head) {
+    this.head = next
+  }
+  if (node === this.tail) {
+    this.tail = prev
+  }
+
+  node.list.length--
+  node.next = null
+  node.prev = null
+  node.list = null
+
+  return next
+}
+
+Yallist.prototype.unshiftNode = function (node) {
+  if (node === this.head) {
+    return
+  }
+
+  if (node.list) {
+    node.list.removeNode(node)
+  }
+
+  var head = this.head
+  node.list = this
+  node.next = head
+  if (head) {
+    head.prev = node
+  }
+
+  this.head = node
+  if (!this.tail) {
+    this.tail = node
+  }
+  this.length++
+}
+
+Yallist.prototype.pushNode = function (node) {
+  if (node === this.tail) {
+    return
+  }
+
+  if (node.list) {
+    node.list.removeNode(node)
+  }
+
+  var tail = this.tail
+  node.list = this
+  node.prev = tail
+  if (tail) {
+    tail.next = node
+  }
+
+  this.tail = node
+  if (!this.head) {
+    this.head = node
+  }
+  this.length++
+}
+
+Yallist.prototype.push = function () {
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    push(this, arguments[i])
+  }
+  return this.length
+}
+
+Yallist.prototype.unshift = function () {
+  for (var i = 0, l = arguments.length; i < l; i++) {
+    unshift(this, arguments[i])
+  }
+  return this.length
+}
+
+Yallist.prototype.pop = function () {
+  if (!this.tail) {
+    return undefined
+  }
+
+  var res = this.tail.value
+  this.tail = this.tail.prev
+  if (this.tail) {
+    this.tail.next = null
+  } else {
+    this.head = null
+  }
+  this.length--
+  return res
+}
+
+Yallist.prototype.shift = function () {
+  if (!this.head) {
+    return undefined
+  }
+
+  var res = this.head.value
+  this.head = this.head.next
+  if (this.head) {
+    this.head.prev = null
+  } else {
+    this.tail = null
+  }
+  this.length--
+  return res
+}
+
+Yallist.prototype.forEach = function (fn, thisp) {
+  thisp = thisp || this
+  for (var walker = this.head, i = 0; walker !== null; i++) {
+    fn.call(thisp, walker.value, i, this)
+    walker = walker.next
+  }
+}
+
+Yallist.prototype.forEachReverse = function (fn, thisp) {
+  thisp = thisp || this
+  for (var walker = this.tail, i = this.length - 1; walker !== null; i--) {
+    fn.call(thisp, walker.value, i, this)
+    walker = walker.prev
+  }
+}
+
+Yallist.prototype.get = function (n) {
+  for (var i = 0, walker = this.head; walker !== null && i < n; i++) {
+    // abort out of the list early if we hit a cycle
+    walker = walker.next
+  }
+  if (i === n && walker !== null) {
+    return walker.value
+  }
+}
+
+Yallist.prototype.getReverse = function (n) {
+  for (var i = 0, walker = this.tail; walker !== null && i < n; i++) {
+    // abort out of the list early if we hit a cycle
+    walker = walker.prev
+  }
+  if (i === n && walker !== null) {
+    return walker.value
+  }
+}
+
+Yallist.prototype.map = function (fn, thisp) {
+  thisp = thisp || this
+  var res = new Yallist()
+  for (var walker = this.head; walker !== null;) {
+    res.push(fn.call(thisp, walker.value, this))
+    walker = walker.next
+  }
+  return res
+}
+
+Yallist.prototype.mapReverse = function (fn, thisp) {
+  thisp = thisp || this
+  var res = new Yallist()
+  for (var walker = this.tail; walker !== null;) {
+    res.push(fn.call(thisp, walker.value, this))
+    walker = walker.prev
+  }
+  return res
+}
+
+Yallist.prototype.reduce = function (fn, initial) {
+  var acc
+  var walker = this.head
+  if (arguments.length > 1) {
+    acc = initial
+  } else if (this.head) {
+    walker = this.head.next
+    acc = this.head.value
+  } else {
+    throw new TypeError('Reduce of empty list with no initial value')
+  }
+
+  for (var i = 0; walker !== null; i++) {
+    acc = fn(acc, walker.value, i)
+    walker = walker.next
+  }
+
+  return acc
+}
+
+Yallist.prototype.reduceReverse = function (fn, initial) {
+  var acc
+  var walker = this.tail
+  if (arguments.length > 1) {
+    acc = initial
+  } else if (this.tail) {
+    walker = this.tail.prev
+    acc = this.tail.value
+  } else {
+    throw new TypeError('Reduce of empty list with no initial value')
+  }
+
+  for (var i = this.length - 1; walker !== null; i--) {
+    acc = fn(acc, walker.value, i)
+    walker = walker.prev
+  }
+
+  return acc
+}
+
+Yallist.prototype.toArray = function () {
+  var arr = new Array(this.length)
+  for (var i = 0, walker = this.head; walker !== null; i++) {
+    arr[i] = walker.value
+    walker = walker.next
+  }
+  return arr
+}
+
+Yallist.prototype.toArrayReverse = function () {
+  var arr = new Array(this.length)
+  for (var i = 0, walker = this.tail; walker !== null; i++) {
+    arr[i] = walker.value
+    walker = walker.prev
+  }
+  return arr
+}
+
+Yallist.prototype.slice = function (from, to) {
+  to = to || this.length
+  if (to < 0) {
+    to += this.length
+  }
+  from = from || 0
+  if (from < 0) {
+    from += this.length
+  }
+  var ret = new Yallist()
+  if (to < from || to < 0) {
+    return ret
+  }
+  if (from < 0) {
+    from = 0
+  }
+  if (to > this.length) {
+    to = this.length
+  }
+  for (var i = 0, walker = this.head; walker !== null && i < from; i++) {
+    walker = walker.next
+  }
+  for (; walker !== null && i < to; i++, walker = walker.next) {
+    ret.push(walker.value)
+  }
+  return ret
+}
+
+Yallist.prototype.sliceReverse = function (from, to) {
+  to = to || this.length
+  if (to < 0) {
+    to += this.length
+  }
+  from = from || 0
+  if (from < 0) {
+    from += this.length
+  }
+  var ret = new Yallist()
+  if (to < from || to < 0) {
+    return ret
+  }
+  if (from < 0) {
+    from = 0
+  }
+  if (to > this.length) {
+    to = this.length
+  }
+  for (var i = this.length, walker = this.tail; walker !== null && i > to; i--) {
+    walker = walker.prev
+  }
+  for (; walker !== null && i > from; i--, walker = walker.prev) {
+    ret.push(walker.value)
+  }
+  return ret
+}
+
+Yallist.prototype.splice = function (start, deleteCount, ...nodes) {
+  if (start > this.length) {
+    start = this.length - 1
+  }
+  if (start < 0) {
+    start = this.length + start;
+  }
+
+  for (var i = 0, walker = this.head; walker !== null && i < start; i++) {
+    walker = walker.next
+  }
+
+  var ret = []
+  for (var i = 0; walker && i < deleteCount; i++) {
+    ret.push(walker.value)
+    walker = this.removeNode(walker)
+  }
+  if (walker === null) {
+    walker = this.tail
+  }
+
+  if (walker !== this.head && walker !== this.tail) {
+    walker = walker.prev
+  }
+
+  for (var i = 0; i < nodes.length; i++) {
+    walker = insert(this, walker, nodes[i])
+  }
+  return ret;
+}
+
+Yallist.prototype.reverse = function () {
+  var head = this.head
+  var tail = this.tail
+  for (var walker = head; walker !== null; walker = walker.prev) {
+    var p = walker.prev
+    walker.prev = walker.next
+    walker.next = p
+  }
+  this.head = tail
+  this.tail = head
+  return this
+}
+
+function insert (self, node, value) {
+  var inserted = node === self.head ?
+    new Node(value, null, node, self) :
+    new Node(value, node, node.next, self)
+
+  if (inserted.next === null) {
+    self.tail = inserted
+  }
+  if (inserted.prev === null) {
+    self.head = inserted
+  }
+
+  self.length++
+
+  return inserted
+}
+
+function push (self, item) {
+  self.tail = new Node(item, self.tail, null, self)
+  if (!self.head) {
+    self.head = self.tail
+  }
+  self.length++
+}
+
+function unshift (self, item) {
+  self.head = new Node(item, null, self.head, self)
+  if (!self.tail) {
+    self.tail = self.head
+  }
+  self.length++
+}
+
+function Node (value, prev, next, list) {
+  if (!(this instanceof Node)) {
+    return new Node(value, prev, next, list)
+  }
+
+  this.list = list
+  this.value = value
+
+  if (prev) {
+    prev.next = this
+    this.prev = prev
+  } else {
+    this.prev = null
+  }
+
+  if (next) {
+    next.prev = this
+    this.next = next
+  } else {
+    this.next = null
+  }
+}
+
+try {
+  // add if support for Symbol.iterator is present
+  __webpack_require__(396)(Yallist)
+} catch (er) {}
+
+
+/***/ }),
 /* 613 */
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.sorter = void 0;
 /**
  * @ignore
  */
@@ -20146,6 +19777,7 @@ exports.VirtualAction = VirtualAction;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.finalize = exports.FinallyIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class FinallyIterable extends iterablex_1.IterableX {
     constructor(source, action) {
@@ -20163,6 +19795,15 @@ class FinallyIterable extends iterablex_1.IterableX {
     }
 }
 exports.FinallyIterable = FinallyIterable;
+/**
+ *  Invokes a specified asynchronous action after the source iterable sequence terminates gracefully or exceptionally.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {(() => void)} action Action to invoke and await asynchronously after the source iterable sequence terminates
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns the source sequence with the
+ * action-invoking termination behavior applied.
+ */
 function finalize(action) {
     return function finallyOperatorFunction(source) {
         return new FinallyIterable(source, action);
@@ -20213,9 +19854,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var subscribeToResult_1 = __webpack_require__(591);
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
+var innerSubscribe_1 = __webpack_require__(938);
 function mergeScan(accumulator, seed, concurrent) {
     if (concurrent === void 0) { concurrent = Number.POSITIVE_INFINITY; }
     return function (source) { return source.lift(new MergeScanOperator(accumulator, seed, concurrent)); };
@@ -20260,17 +19899,17 @@ var MergeScanSubscriber = (function (_super) {
                 return destination.error(e);
             }
             this.active++;
-            this._innerSub(ish, value, index);
+            this._innerSub(ish);
         }
         else {
             this.buffer.push(value);
         }
     };
-    MergeScanSubscriber.prototype._innerSub = function (ish, value, index) {
-        var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, value, index);
+    MergeScanSubscriber.prototype._innerSub = function (ish) {
+        var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
         var destination = this.destination;
         destination.add(innerSubscriber);
-        var innerSubscription = subscribeToResult_1.subscribeToResult(this, ish, undefined, undefined, innerSubscriber);
+        var innerSubscription = innerSubscribe_1.innerSubscribe(ish, innerSubscriber);
         if (innerSubscription !== innerSubscriber) {
             destination.add(innerSubscription);
         }
@@ -20285,16 +19924,14 @@ var MergeScanSubscriber = (function (_super) {
         }
         this.unsubscribe();
     };
-    MergeScanSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    MergeScanSubscriber.prototype.notifyNext = function (innerValue) {
         var destination = this.destination;
         this.acc = innerValue;
         this.hasValue = true;
         destination.next(innerValue);
     };
-    MergeScanSubscriber.prototype.notifyComplete = function (innerSub) {
+    MergeScanSubscriber.prototype.notifyComplete = function () {
         var buffer = this.buffer;
-        var destination = this.destination;
-        destination.remove(innerSub);
         this.active--;
         if (buffer.length > 0) {
             this._next(buffer.shift());
@@ -20307,7 +19944,7 @@ var MergeScanSubscriber = (function (_super) {
         }
     };
     return MergeScanSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 exports.MergeScanSubscriber = MergeScanSubscriber;
 //# sourceMappingURL=mergeScan.js.map
 
@@ -20390,63 +20027,48 @@ module.exports = require("path");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-const returniterator_1 = __webpack_require__(764);
-class CatchAllAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(source) {
+exports.repeat = exports.RepeatIterable = void 0;
+const iterablex_1 = __webpack_require__(954);
+class RepeatIterable extends iterablex_1.IterableX {
+    constructor(source, count) {
         super();
         this._source = source;
+        this._count = count;
     }
-    async *[Symbol.asyncIterator]() {
-        let error = null;
-        let hasError = false;
-        for (const source of this._source) {
-            const it = source[Symbol.asyncIterator]();
-            error = null;
-            hasError = false;
+    *[Symbol.iterator]() {
+        if (this._count === -1) {
             while (1) {
-                let c = {};
-                try {
-                    const { done, value } = await it.next();
-                    if (done) {
-                        await returniterator_1.returnAsyncIterator(it);
-                        break;
-                    }
-                    c = value;
+                for (const item of this._source) {
+                    yield item;
                 }
-                catch (e) {
-                    error = e;
-                    hasError = true;
-                    await returniterator_1.returnAsyncIterator(it);
-                    break;
-                }
-                yield c;
-            }
-            if (!hasError) {
-                break;
             }
         }
-        if (hasError) {
-            throw error;
+        else {
+            for (let i = 0; i < this._count; i++) {
+                for (const item of this._source) {
+                    yield item;
+                }
+            }
         }
     }
 }
-exports.CatchAllAsyncIterable = CatchAllAsyncIterable;
+exports.RepeatIterable = RepeatIterable;
 /**
- * Creates a sequence by concatenating source sequences until a source sequence completes successfully.
- * @param {AsyncIterable<AsyncIterable<T>>} source Source sequences.
- * @return {AsyncIterable<T>} Sequence that continues to concatenate source sequences while errors occur.
+ * Repeats the async-enumerable sequence a specified number of times.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} [count=-1] Number of times to repeat the sequence. If not specified, the sequence repeats indefinitely.
+ * @returns {MonoTypeOperatorFunction<TSource>} The iterable sequence producing the elements of the given sequence repeatedly.
  */
-function catchAll(source) {
-    return new CatchAllAsyncIterable(source);
+function repeat(count = -1) {
+    return function repeatOperatorFunction(source) {
+        return new RepeatIterable(source, count);
+    };
 }
-exports.catchAll = catchAll;
-function catchError(...args) {
-    return new CatchAllAsyncIterable(args);
-}
-exports.catchError = catchError;
+exports.repeat = repeat;
 
-//# sourceMappingURL=catcherror.js.map
+//# sourceMappingURL=repeat.js.map
 
 
 /***/ }),
@@ -20654,7 +20276,7 @@ var SequenceEqualCompareToSubscriber = (function (_super) {
 /* 630 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const rcompare = (a, b, loose) => compare(b, a, loose)
 module.exports = rcompare
 
@@ -20690,62 +20312,7 @@ exports.fromArray = fromArray;
 
 /***/ }),
 /* 635 */,
-/* 636 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const NEVER_PROMISE = new Promise(() => { });
-function wrapPromiseWithIndex(promise, index) {
-    return promise.then(value => ({ value, index }));
-}
-class MergeAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(source) {
-        super();
-        this._source = source;
-    }
-    async *[Symbol.asyncIterator]() {
-        const length = this._source.length;
-        const iterators = new Array(length);
-        const nexts = new Array(length);
-        let active = length;
-        for (let i = 0; i < length; i++) {
-            const iterator = this._source[i][Symbol.asyncIterator]();
-            iterators[i] = iterator;
-            nexts[i] = wrapPromiseWithIndex(iterator.next(), i);
-        }
-        while (active > 0) {
-            const next = Promise.race(nexts);
-            const { value: next$, index } = await next;
-            if (next$.done) {
-                nexts[index] = NEVER_PROMISE;
-                active--;
-            }
-            else {
-                const iterator$ = iterators[index];
-                nexts[index] = wrapPromiseWithIndex(iterator$.next(), index);
-                yield next$.value;
-            }
-        }
-    }
-}
-exports.MergeAsyncIterable = MergeAsyncIterable;
-function merge(source, ...args) {
-    return new MergeAsyncIterable([source, ...args]);
-}
-exports.merge = merge;
-function mergeStatic(...args) {
-    return new MergeAsyncIterable(args);
-}
-exports.mergeStatic = mergeStatic;
-
-//# sourceMappingURL=merge.js.map
-
-
-/***/ }),
+/* 636 */,
 /* 637 */,
 /* 638 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -20766,11 +20333,9 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var InnerSubscriber_1 = __webpack_require__(668);
-var subscribeToResult_1 = __webpack_require__(591);
 var map_1 = __webpack_require__(802);
 var from_1 = __webpack_require__(997);
+var innerSubscribe_1 = __webpack_require__(938);
 function exhaustMap(project, resultSelector) {
     if (resultSelector) {
         return function (source) { return source.pipe(exhaustMap(function (a, i) { return from_1.from(project(a, i)).pipe(map_1.map(function (b, ii) { return resultSelector(a, b, i, ii); })); })); };
@@ -20815,13 +20380,13 @@ var ExhaustMapSubscriber = (function (_super) {
             return;
         }
         this.hasSubscription = true;
-        this._innerSub(result, value, index);
+        this._innerSub(result);
     };
-    ExhaustMapSubscriber.prototype._innerSub = function (result, value, index) {
-        var innerSubscriber = new InnerSubscriber_1.InnerSubscriber(this, value, index);
+    ExhaustMapSubscriber.prototype._innerSub = function (result) {
+        var innerSubscriber = new innerSubscribe_1.SimpleInnerSubscriber(this);
         var destination = this.destination;
         destination.add(innerSubscriber);
-        var innerSubscription = subscribeToResult_1.subscribeToResult(this, result, undefined, undefined, innerSubscriber);
+        var innerSubscription = innerSubscribe_1.innerSubscribe(result, innerSubscriber);
         if (innerSubscription !== innerSubscriber) {
             destination.add(innerSubscription);
         }
@@ -20833,22 +20398,20 @@ var ExhaustMapSubscriber = (function (_super) {
         }
         this.unsubscribe();
     };
-    ExhaustMapSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    ExhaustMapSubscriber.prototype.notifyNext = function (innerValue) {
         this.destination.next(innerValue);
     };
     ExhaustMapSubscriber.prototype.notifyError = function (err) {
         this.destination.error(err);
     };
-    ExhaustMapSubscriber.prototype.notifyComplete = function (innerSub) {
-        var destination = this.destination;
-        destination.remove(innerSub);
+    ExhaustMapSubscriber.prototype.notifyComplete = function () {
         this.hasSubscription = false;
         if (this.hasCompleted) {
             this.destination.complete();
         }
     };
     return ExhaustMapSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=exhaustMap.js.map
 
 /***/ }),
@@ -20858,6 +20421,7 @@ var ExhaustMapSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.empty = void 0;
 const iterablex_1 = __webpack_require__(954);
 class EmptyIterable extends iterablex_1.IterableX {
     *[Symbol.iterator]() {
@@ -20865,8 +20429,11 @@ class EmptyIterable extends iterablex_1.IterableX {
     }
 }
 /**
- * Returns an empty iterable.
- * @return {Iterable<T>} The empty iterable.
+ * Returns an empty iterable sequence.
+ *
+ * @export
+ * @template TSource The type used for the iterable type parameter of the resulting sequence.
+ * @returns {IterableX<never>} An iterable sequence with no elements.
  */
 function empty() {
     return new EmptyIterable();
@@ -20885,6 +20452,7 @@ exports.empty = empty;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.flat = exports.FlattenIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const isiterable_1 = __webpack_require__(35);
 class FlattenIterable extends iterablex_1.IterableX {
@@ -20917,6 +20485,14 @@ class FlattenIterable extends iterablex_1.IterableX {
     }
 }
 exports.FlattenIterable = FlattenIterable;
+/**
+ * Flattens the nested iterable by the given depth.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @param {number} [depth=Infinity] The depth to flatten the iterable sequence if specified, otherwise infinite.
+ * @returns {MonoTypeOperatorFunction<T>} An operator that flattens the iterable sequence.
+ */
 function flat(depth = Infinity) {
     return function flattenOperatorFunction(source) {
         return new FlattenIterable(source, depth);
@@ -21031,6 +20607,7 @@ var TapSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.generate = void 0;
 const iterablex_1 = __webpack_require__(954);
 class GenerateIterable extends iterablex_1.IterableX {
     constructor(initialState, condition, iterate, resultSelector) {
@@ -21046,6 +20623,19 @@ class GenerateIterable extends iterablex_1.IterableX {
         }
     }
 }
+/**
+ * Generates an iterable sequence by running a state-driven loop producing the sequence's elements.
+ *
+ * @export
+ * @template TState The type of the state used in the generator loop.
+ * @template TResult The type of the elements in the produced sequence.
+ * @param {TState} initialState The initial state.
+ * @param {((value: TState) => boolean)} condition Condition to terminate generation (upon returning false).
+ * @param {((value: TState) => TState)} iterate Iteration step function.
+ * @param {((value: TState) => TResult)} resultSelector Selector function for results produced in
+ * the sequence.
+ * @returns {IterableX<TResult>} The generated iterable sequence.
+ */
 function generate(initialState, condition, iterate, resultSelector) {
     return new GenerateIterable(initialState, condition, iterate, resultSelector);
 }
@@ -21109,6 +20699,7 @@ var FinallySubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.defer = void 0;
 const iterablex_1 = __webpack_require__(954);
 class DeferIterable extends iterablex_1.IterableX {
     constructor(fn) {
@@ -21122,9 +20713,12 @@ class DeferIterable extends iterablex_1.IterableX {
     }
 }
 /**
- * Creates an enumerable sequence based on an iterable factory function.
- * @param {function(): Iterable<T>} factory Iterable factory function.
- * @return {Iterable<T>} Sequence that will invoke the iterable factory upon a call to [Symbol.iterator]().
+ * Returns an iterable sequence that invokes the specified factory function whenever a call to [Symbol.iterator] has been made.
+ *
+ * @export
+ * @template TSource The type of the elements in the sequence returned by the factory function, and in the resulting sequence.
+ * @param {(() => Iterable<TSource>)} factory iterable factory function to invoke for each call to [Symbol.iterator].
+ * @returns {AsyncIterableX<TSource>} An iterable sequence whose observers trigger an invocation of the given iterable factory function.
  */
 function defer(factory) {
     return new DeferIterable(factory);
@@ -21203,6 +20797,15 @@ if (process.platform === 'linux') {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toSet = void 0;
+/**
+ * Converts the existing iterable into a promise which resolves a Set.
+ *
+ * @export
+ * @template TSource The type of elements in the source sequence.
+ * @param {Iterable<TSource>} source The iterable to convert into a set.
+ * @returns {Set<TSource>} A promise which contains a Set with all the elements from the iterable.
+ */
 function toSet(source) {
     const set = new Set();
     for (const item of source) {
@@ -21239,12 +20842,16 @@ exports.isFunction = isFunction;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.elementAt = void 0;
 /**
  * Returns the element at a specified index in a sequence or undefined if the index is out of range.
- * @param {Iterable<T>} source The source sequence.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source iterable sequence to return the element from.
  * @param {number} index The zero-based index of the element to retrieve.
- * @return {T} undefined if the index is outside the bounds of the source sequence; otherwise, the element at the
- * specified position in the source sequence.
+ * @returns {(T | undefined)} An iterable sequence that produces the element at the specified
+ * position in the source sequence, or undefined if the index is outside the bounds of the source sequence.
  */
 function elementAt(source, index) {
     let i = index;
@@ -21382,24 +20989,7 @@ module.exports = require("util");
 /***/ }),
 /* 670 */,
 /* 671 */,
-/* 672 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const _extremaby_1 = __webpack_require__(817);
-function maxBy(keySelector, comparer = _extremaby_1.defaultCompare) {
-    return function maxByOperatorFunction(source) {
-        return _extremaby_1.extremaBy(source, keySelector, comparer);
-    };
-}
-exports.maxBy = maxBy;
-
-//# sourceMappingURL=maxby.js.map
-
-
-/***/ }),
+/* 672 */,
 /* 673 */,
 /* 674 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -21407,31 +20997,37 @@ exports.maxBy = maxBy;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class ConcatAsyncIterable extends asynciterablex_1.AsyncIterableX {
+exports.reverse = exports.ReverseIterable = void 0;
+const iterablex_1 = __webpack_require__(954);
+class ReverseIterable extends iterablex_1.IterableX {
     constructor(source) {
         super();
         this._source = source;
     }
-    async *[Symbol.asyncIterator]() {
-        for (const outer of this._source) {
-            for await (const item of outer) {
-                yield item;
-            }
+    *[Symbol.iterator]() {
+        const results = [];
+        for (const item of this._source) {
+            results.unshift(item);
         }
+        yield* results;
     }
 }
-exports.ConcatAsyncIterable = ConcatAsyncIterable;
-function _concatAll(source) {
-    return new ConcatAsyncIterable(source);
+exports.ReverseIterable = ReverseIterable;
+/**
+ * Reverses the iterable instance.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @returns {MonoTypeOperatorAsyncFunction<TSource>} The iterable in reversed sequence.
+ */
+function reverse() {
+    return function reverseOperatorFunction(source) {
+        return new ReverseIterable(source);
+    };
 }
-exports._concatAll = _concatAll;
-function concat(...args) {
-    return new ConcatAsyncIterable(args);
-}
-exports.concat = concat;
+exports.reverse = reverse;
 
-//# sourceMappingURL=concat.js.map
+//# sourceMappingURL=reverse.js.map
 
 
 /***/ }),
@@ -21471,62 +21067,7 @@ module.exports = opts => {
 
 /***/ }),
 /* 683 */,
-/* 684 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-const NEVER_PROMISE = new Promise(() => { });
-function wrapPromiseWithIndex(promise, index) {
-    return promise.then(value => ({ value, index }));
-}
-// eslint-disable-next-line complexity
-async function forkJoin(...sources) {
-    let fn = (sources.shift() || identity_1.identityAsync);
-    if (fn && typeof fn !== 'function') {
-        sources.unshift(fn);
-        fn = identity_1.identityAsync;
-    }
-    const length = sources.length;
-    const iterators = new Array(length);
-    const nexts = new Array(length);
-    let active = length;
-    const values = new Array(length);
-    const hasValues = new Array(length);
-    hasValues.fill(false);
-    for (let i = 0; i < length; i++) {
-        const iterator = sources[i][Symbol.asyncIterator]();
-        iterators[i] = iterator;
-        nexts[i] = wrapPromiseWithIndex(iterator.next(), i);
-    }
-    while (active > 0) {
-        const next = Promise.race(nexts);
-        const { value: next$, index } = await next;
-        if (next$.done) {
-            nexts[index] = NEVER_PROMISE;
-            active--;
-        }
-        else {
-            const iterator$ = iterators[index];
-            nexts[index] = wrapPromiseWithIndex(iterator$.next(), index);
-            hasValues[index] = true;
-            values[index] = next$.value;
-        }
-    }
-    if (hasValues.length > 0 && hasValues.every(identity_1.identity)) {
-        return await fn(values);
-    }
-    return undefined;
-}
-exports.forkJoin = forkJoin;
-
-//# sourceMappingURL=forkjoin.js.map
-
-
-/***/ }),
+/* 684 */,
 /* 685 */,
 /* 686 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -21547,8 +21088,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function sample(notifier) {
     return function (source) { return source.lift(new SampleOperator(notifier)); };
 }
@@ -21560,7 +21100,7 @@ var SampleOperator = (function () {
     SampleOperator.prototype.call = function (subscriber, source) {
         var sampleSubscriber = new SampleSubscriber(subscriber);
         var subscription = source.subscribe(sampleSubscriber);
-        subscription.add(subscribeToResult_1.subscribeToResult(sampleSubscriber, this.notifier));
+        subscription.add(innerSubscribe_1.innerSubscribe(this.notifier, new innerSubscribe_1.SimpleInnerSubscriber(sampleSubscriber)));
         return subscription;
     };
     return SampleOperator;
@@ -21576,7 +21116,7 @@ var SampleSubscriber = (function (_super) {
         this.value = value;
         this.hasValue = true;
     };
-    SampleSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    SampleSubscriber.prototype.notifyNext = function () {
         this.emitValue();
     };
     SampleSubscriber.prototype.notifyComplete = function () {
@@ -21589,7 +21129,7 @@ var SampleSubscriber = (function (_super) {
         }
     };
     return SampleSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=sample.js.map
 
 /***/ }),
@@ -21626,9 +21166,11 @@ function shareReplayOperator(_a) {
     var isComplete = false;
     return function shareReplayOperation(source) {
         refCount++;
+        var innerSub;
         if (!subject || hasError) {
             hasError = false;
             subject = new ReplaySubject_1.ReplaySubject(bufferSize, windowTime, scheduler);
+            innerSub = subject.subscribe(this);
             subscription = source.subscribe({
                 next: function (value) { subject.next(value); },
                 error: function (err) {
@@ -21642,7 +21184,9 @@ function shareReplayOperator(_a) {
                 },
             });
         }
-        var innerSub = subject.subscribe(this);
+        else {
+            innerSub = subject.subscribe(this);
+        }
         this.add(function () {
             refCount--;
             innerSub.unsubscribe();
@@ -21693,27 +21237,38 @@ exports.Deprecation = Deprecation;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.filter = exports.FilterIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const bindcallback_1 = __webpack_require__(270);
 class FilterIterable extends iterablex_1.IterableX {
-    constructor(source, predicate) {
+    constructor(source, predicate, thisArg) {
         super();
         this._source = source;
         this._predicate = predicate;
+        this._thisArg = thisArg;
     }
     *[Symbol.iterator]() {
         let i = 0;
         for (const item of this._source) {
-            if (this._predicate(item, i++)) {
+            if (this._predicate.call(this._thisArg, item, i++)) {
                 yield item;
             }
         }
     }
 }
 exports.FilterIterable = FilterIterable;
+/**
+ * Filters the elements of an iterable sequence based on a predicate.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {((value: TSource, index: number) => boolean)} predicate A function to test each source element for a condition.
+ * @param {*} [thisArg] Optional this for binding.
+ * @returns {OperatorFunction<TSource, TSource>} An operator which returns an iterable
+ * sequence that contains elements from the input sequence that satisfy the condition.
+ */
 function filter(predicate, thisArg) {
     return function filterOperatorFunction(source) {
-        return new FilterIterable(source, bindcallback_1.bindCallback(predicate, thisArg, 2));
+        return new FilterIterable(source, predicate, thisArg);
     };
 }
 exports.filter = filter;
@@ -21722,63 +21277,9 @@ exports.filter = filter;
 
 
 /***/ }),
-/* 694 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-// Symbol.observable or a string "@@observable". Used for interop.
-// Referenced via string indexer so closure-compiler doesn't mangle.
-exports.observable = (typeof Symbol === 'function' && Symbol.observable) || '@@observable';
-
-//# sourceMappingURL=observer.js.map
-
-
-/***/ }),
+/* 694 */,
 /* 695 */,
-/* 696 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-class RepeatIterable extends iterablex_1.IterableX {
-    constructor(source, count) {
-        super();
-        this._source = source;
-        this._count = count;
-    }
-    *[Symbol.iterator]() {
-        if (this._count === -1) {
-            while (1) {
-                for (const item of this._source) {
-                    yield item;
-                }
-            }
-        }
-        else {
-            for (let i = 0; i < this._count; i++) {
-                for (const item of this._source) {
-                    yield item;
-                }
-            }
-        }
-    }
-}
-exports.RepeatIterable = RepeatIterable;
-function repeat(count = -1) {
-    return function repeatOperatorFunction(source) {
-        return new RepeatIterable(source, count);
-    };
-}
-exports.repeat = repeat;
-
-//# sourceMappingURL=repeat.js.map
-
-
-/***/ }),
+/* 696 */,
 /* 697 */
 /***/ (function(module) {
 
@@ -21839,23 +21340,33 @@ exports.pipeFromArray = pipeFromArray;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.max = void 0;
+const comparer_1 = __webpack_require__(492);
 const identity_1 = __webpack_require__(296);
-function max(source, fn = identity_1.identity) {
-    let atleastOnce = false;
-    let value = -Infinity;
-    for (const item of source) {
-        if (!atleastOnce) {
-            atleastOnce = true;
-        }
-        const x = fn(item);
-        if (x > value) {
-            value = x;
-        }
-    }
-    if (!atleastOnce) {
+/**
+ * Returns the maximum element with the optional selector.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {Iterable<TSource>} source An async-iterable sequence to determine the maximum element of.
+ * @param {ExtremaByOptions<TKey>} [options] The options which include an optional comparer and abort signal.
+ * @returns {Promise<TResult>} The maximum element.
+ */
+function max(source, options) {
+    const { ['comparer']: comparer = comparer_1.equalityComparer, ['selector']: selector = identity_1.identity } = options || {};
+    const it = source[Symbol.iterator]();
+    let next = it.next();
+    if (next.done) {
         throw new Error('Sequence contains no elements');
     }
-    return value;
+    let maxValue = selector(next.value);
+    while (!(next = it.next()).done) {
+        const current = selector(next.value);
+        if (comparer(current, maxValue) > 0) {
+            maxValue = current;
+        }
+    }
+    return maxValue;
 }
 exports.max = max;
 
@@ -21863,7 +21374,347 @@ exports.max = max;
 
 
 /***/ }),
-/* 702 */,
+/* 702 */
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+// A linked list to keep track of recently-used-ness
+const Yallist = __webpack_require__(612)
+
+const MAX = Symbol('max')
+const LENGTH = Symbol('length')
+const LENGTH_CALCULATOR = Symbol('lengthCalculator')
+const ALLOW_STALE = Symbol('allowStale')
+const MAX_AGE = Symbol('maxAge')
+const DISPOSE = Symbol('dispose')
+const NO_DISPOSE_ON_SET = Symbol('noDisposeOnSet')
+const LRU_LIST = Symbol('lruList')
+const CACHE = Symbol('cache')
+const UPDATE_AGE_ON_GET = Symbol('updateAgeOnGet')
+
+const naiveLength = () => 1
+
+// lruList is a yallist where the head is the youngest
+// item, and the tail is the oldest.  the list contains the Hit
+// objects as the entries.
+// Each Hit object has a reference to its Yallist.Node.  This
+// never changes.
+//
+// cache is a Map (or PseudoMap) that matches the keys to
+// the Yallist.Node object.
+class LRUCache {
+  constructor (options) {
+    if (typeof options === 'number')
+      options = { max: options }
+
+    if (!options)
+      options = {}
+
+    if (options.max && (typeof options.max !== 'number' || options.max < 0))
+      throw new TypeError('max must be a non-negative number')
+    // Kind of weird to have a default max of Infinity, but oh well.
+    const max = this[MAX] = options.max || Infinity
+
+    const lc = options.length || naiveLength
+    this[LENGTH_CALCULATOR] = (typeof lc !== 'function') ? naiveLength : lc
+    this[ALLOW_STALE] = options.stale || false
+    if (options.maxAge && typeof options.maxAge !== 'number')
+      throw new TypeError('maxAge must be a number')
+    this[MAX_AGE] = options.maxAge || 0
+    this[DISPOSE] = options.dispose
+    this[NO_DISPOSE_ON_SET] = options.noDisposeOnSet || false
+    this[UPDATE_AGE_ON_GET] = options.updateAgeOnGet || false
+    this.reset()
+  }
+
+  // resize the cache when the max changes.
+  set max (mL) {
+    if (typeof mL !== 'number' || mL < 0)
+      throw new TypeError('max must be a non-negative number')
+
+    this[MAX] = mL || Infinity
+    trim(this)
+  }
+  get max () {
+    return this[MAX]
+  }
+
+  set allowStale (allowStale) {
+    this[ALLOW_STALE] = !!allowStale
+  }
+  get allowStale () {
+    return this[ALLOW_STALE]
+  }
+
+  set maxAge (mA) {
+    if (typeof mA !== 'number')
+      throw new TypeError('maxAge must be a non-negative number')
+
+    this[MAX_AGE] = mA
+    trim(this)
+  }
+  get maxAge () {
+    return this[MAX_AGE]
+  }
+
+  // resize the cache when the lengthCalculator changes.
+  set lengthCalculator (lC) {
+    if (typeof lC !== 'function')
+      lC = naiveLength
+
+    if (lC !== this[LENGTH_CALCULATOR]) {
+      this[LENGTH_CALCULATOR] = lC
+      this[LENGTH] = 0
+      this[LRU_LIST].forEach(hit => {
+        hit.length = this[LENGTH_CALCULATOR](hit.value, hit.key)
+        this[LENGTH] += hit.length
+      })
+    }
+    trim(this)
+  }
+  get lengthCalculator () { return this[LENGTH_CALCULATOR] }
+
+  get length () { return this[LENGTH] }
+  get itemCount () { return this[LRU_LIST].length }
+
+  rforEach (fn, thisp) {
+    thisp = thisp || this
+    for (let walker = this[LRU_LIST].tail; walker !== null;) {
+      const prev = walker.prev
+      forEachStep(this, fn, walker, thisp)
+      walker = prev
+    }
+  }
+
+  forEach (fn, thisp) {
+    thisp = thisp || this
+    for (let walker = this[LRU_LIST].head; walker !== null;) {
+      const next = walker.next
+      forEachStep(this, fn, walker, thisp)
+      walker = next
+    }
+  }
+
+  keys () {
+    return this[LRU_LIST].toArray().map(k => k.key)
+  }
+
+  values () {
+    return this[LRU_LIST].toArray().map(k => k.value)
+  }
+
+  reset () {
+    if (this[DISPOSE] &&
+        this[LRU_LIST] &&
+        this[LRU_LIST].length) {
+      this[LRU_LIST].forEach(hit => this[DISPOSE](hit.key, hit.value))
+    }
+
+    this[CACHE] = new Map() // hash of items by key
+    this[LRU_LIST] = new Yallist() // list of items in order of use recency
+    this[LENGTH] = 0 // length of items in the list
+  }
+
+  dump () {
+    return this[LRU_LIST].map(hit =>
+      isStale(this, hit) ? false : {
+        k: hit.key,
+        v: hit.value,
+        e: hit.now + (hit.maxAge || 0)
+      }).toArray().filter(h => h)
+  }
+
+  dumpLru () {
+    return this[LRU_LIST]
+  }
+
+  set (key, value, maxAge) {
+    maxAge = maxAge || this[MAX_AGE]
+
+    if (maxAge && typeof maxAge !== 'number')
+      throw new TypeError('maxAge must be a number')
+
+    const now = maxAge ? Date.now() : 0
+    const len = this[LENGTH_CALCULATOR](value, key)
+
+    if (this[CACHE].has(key)) {
+      if (len > this[MAX]) {
+        del(this, this[CACHE].get(key))
+        return false
+      }
+
+      const node = this[CACHE].get(key)
+      const item = node.value
+
+      // dispose of the old one before overwriting
+      // split out into 2 ifs for better coverage tracking
+      if (this[DISPOSE]) {
+        if (!this[NO_DISPOSE_ON_SET])
+          this[DISPOSE](key, item.value)
+      }
+
+      item.now = now
+      item.maxAge = maxAge
+      item.value = value
+      this[LENGTH] += len - item.length
+      item.length = len
+      this.get(key)
+      trim(this)
+      return true
+    }
+
+    const hit = new Entry(key, value, len, now, maxAge)
+
+    // oversized objects fall out of cache automatically.
+    if (hit.length > this[MAX]) {
+      if (this[DISPOSE])
+        this[DISPOSE](key, value)
+
+      return false
+    }
+
+    this[LENGTH] += hit.length
+    this[LRU_LIST].unshift(hit)
+    this[CACHE].set(key, this[LRU_LIST].head)
+    trim(this)
+    return true
+  }
+
+  has (key) {
+    if (!this[CACHE].has(key)) return false
+    const hit = this[CACHE].get(key).value
+    return !isStale(this, hit)
+  }
+
+  get (key) {
+    return get(this, key, true)
+  }
+
+  peek (key) {
+    return get(this, key, false)
+  }
+
+  pop () {
+    const node = this[LRU_LIST].tail
+    if (!node)
+      return null
+
+    del(this, node)
+    return node.value
+  }
+
+  del (key) {
+    del(this, this[CACHE].get(key))
+  }
+
+  load (arr) {
+    // reset the cache
+    this.reset()
+
+    const now = Date.now()
+    // A previous serialized cache has the most recent items first
+    for (let l = arr.length - 1; l >= 0; l--) {
+      const hit = arr[l]
+      const expiresAt = hit.e || 0
+      if (expiresAt === 0)
+        // the item was created without expiration in a non aged cache
+        this.set(hit.k, hit.v)
+      else {
+        const maxAge = expiresAt - now
+        // dont add already expired items
+        if (maxAge > 0) {
+          this.set(hit.k, hit.v, maxAge)
+        }
+      }
+    }
+  }
+
+  prune () {
+    this[CACHE].forEach((value, key) => get(this, key, false))
+  }
+}
+
+const get = (self, key, doUse) => {
+  const node = self[CACHE].get(key)
+  if (node) {
+    const hit = node.value
+    if (isStale(self, hit)) {
+      del(self, node)
+      if (!self[ALLOW_STALE])
+        return undefined
+    } else {
+      if (doUse) {
+        if (self[UPDATE_AGE_ON_GET])
+          node.value.now = Date.now()
+        self[LRU_LIST].unshiftNode(node)
+      }
+    }
+    return hit.value
+  }
+}
+
+const isStale = (self, hit) => {
+  if (!hit || (!hit.maxAge && !self[MAX_AGE]))
+    return false
+
+  const diff = Date.now() - hit.now
+  return hit.maxAge ? diff > hit.maxAge
+    : self[MAX_AGE] && (diff > self[MAX_AGE])
+}
+
+const trim = self => {
+  if (self[LENGTH] > self[MAX]) {
+    for (let walker = self[LRU_LIST].tail;
+      self[LENGTH] > self[MAX] && walker !== null;) {
+      // We know that we're about to delete this one, and also
+      // what the next least recently used key will be, so just
+      // go ahead and set it now.
+      const prev = walker.prev
+      del(self, walker)
+      walker = prev
+    }
+  }
+}
+
+const del = (self, node) => {
+  if (node) {
+    const hit = node.value
+    if (self[DISPOSE])
+      self[DISPOSE](hit.key, hit.value)
+
+    self[LENGTH] -= hit.length
+    self[CACHE].delete(hit.key)
+    self[LRU_LIST].removeNode(node)
+  }
+}
+
+class Entry {
+  constructor (key, value, length, now, maxAge) {
+    this.key = key
+    this.value = value
+    this.length = length
+    this.now = now
+    this.maxAge = maxAge || 0
+  }
+}
+
+const forEachStep = (self, fn, node, thisp) => {
+  let hit = node.value
+  if (isStale(self, hit)) {
+    del(self, node)
+    if (!self[ALLOW_STALE])
+      hit = undefined
+  }
+  if (hit)
+    fn.call(thisp, hit.value, hit.key, self)
+}
+
+module.exports = LRUCache
+
+
+/***/ }),
 /* 703 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -21883,8 +21734,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function distinct(keySelector, flushes) {
     return function (source) { return source.lift(new DistinctOperator(keySelector, flushes)); };
 }
@@ -21906,14 +21756,14 @@ var DistinctSubscriber = (function (_super) {
         _this.keySelector = keySelector;
         _this.values = new Set();
         if (flushes) {
-            _this.add(subscribeToResult_1.subscribeToResult(_this, flushes));
+            _this.add(innerSubscribe_1.innerSubscribe(flushes, new innerSubscribe_1.SimpleInnerSubscriber(_this)));
         }
         return _this;
     }
-    DistinctSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    DistinctSubscriber.prototype.notifyNext = function () {
         this.values.clear();
     };
-    DistinctSubscriber.prototype.notifyError = function (error, innerSub) {
+    DistinctSubscriber.prototype.notifyError = function (error) {
         this._error(error);
     };
     DistinctSubscriber.prototype._next = function (value) {
@@ -21944,7 +21794,7 @@ var DistinctSubscriber = (function (_super) {
         }
     };
     return DistinctSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 exports.DistinctSubscriber = DistinctSubscriber;
 //# sourceMappingURL=distinct.js.map
 
@@ -21969,8 +21819,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Subject_1 = __webpack_require__(564);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function repeatWhen(notifier) {
     return function (source) { return source.lift(new RepeatWhenOperator(notifier)); };
 }
@@ -21993,11 +21842,11 @@ var RepeatWhenSubscriber = (function (_super) {
         _this.sourceIsBeingSubscribedTo = true;
         return _this;
     }
-    RepeatWhenSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    RepeatWhenSubscriber.prototype.notifyNext = function () {
         this.sourceIsBeingSubscribedTo = true;
         this.source.subscribe(this);
     };
-    RepeatWhenSubscriber.prototype.notifyComplete = function (innerSub) {
+    RepeatWhenSubscriber.prototype.notifyComplete = function () {
         if (this.sourceIsBeingSubscribedTo === false) {
             return _super.prototype.complete.call(this);
         }
@@ -22012,20 +21861,20 @@ var RepeatWhenSubscriber = (function (_super) {
                 return _super.prototype.complete.call(this);
             }
             this._unsubscribeAndRecycle();
-            this.notifications.next();
+            this.notifications.next(undefined);
         }
     };
     RepeatWhenSubscriber.prototype._unsubscribe = function () {
         var _a = this, notifications = _a.notifications, retriesSubscription = _a.retriesSubscription;
         if (notifications) {
             notifications.unsubscribe();
-            this.notifications = null;
+            this.notifications = undefined;
         }
         if (retriesSubscription) {
             retriesSubscription.unsubscribe();
-            this.retriesSubscription = null;
+            this.retriesSubscription = undefined;
         }
-        this.retries = null;
+        this.retries = undefined;
     };
     RepeatWhenSubscriber.prototype._unsubscribeAndRecycle = function () {
         var _unsubscribe = this._unsubscribe;
@@ -22045,10 +21894,10 @@ var RepeatWhenSubscriber = (function (_super) {
             return _super.prototype.complete.call(this);
         }
         this.retries = retries;
-        this.retriesSubscription = subscribeToResult_1.subscribeToResult(this, retries);
+        this.retriesSubscription = innerSubscribe_1.innerSubscribe(retries, new innerSubscribe_1.SimpleInnerSubscriber(this));
     };
     return RepeatWhenSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=repeatWhen.js.map
 
 /***/ }),
@@ -22141,7 +21990,6 @@ var BufferToggleSubscriber = (function (_super) {
     __extends(BufferToggleSubscriber, _super);
     function BufferToggleSubscriber(destination, openings, closingSelector) {
         var _this = _super.call(this, destination) || this;
-        _this.openings = openings;
         _this.closingSelector = closingSelector;
         _this.contexts = [];
         _this.add(subscribeToResult_1.subscribeToResult(_this, openings));
@@ -22177,7 +22025,7 @@ var BufferToggleSubscriber = (function (_super) {
         this.contexts = null;
         _super.prototype._complete.call(this);
     };
-    BufferToggleSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    BufferToggleSubscriber.prototype.notifyNext = function (outerValue, innerValue) {
         outerValue ? this.closeBuffer(outerValue) : this.openBuffer(innerValue);
     };
     BufferToggleSubscriber.prototype.notifyComplete = function (innerSub) {
@@ -22285,7 +22133,8 @@ module.exports = sort
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const todomstream_1 = __webpack_require__(429);
+exports.toDOMStream = void 0;
+const todomstream_1 = __webpack_require__(570);
 function toDOMStream(options) {
     return function toDOMStreamOperatorFunction(source) {
         if (!options || !('type' in options) || options['type'] !== 'bytes') {
@@ -22356,119 +22205,17 @@ var IsEmptySubscriber = (function (_super) {
 //# sourceMappingURL=isEmpty.js.map
 
 /***/ }),
-/* 727 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function every(source, predicate) {
-    let i = 0;
-    for await (const item of source) {
-        if (!(await predicate(item, i++))) {
-            return false;
-        }
-    }
-    return true;
-}
-exports.every = every;
-
-//# sourceMappingURL=every.js.map
-
-
-/***/ }),
+/* 727 */,
 /* 728 */,
 /* 729 */,
 /* 730 */,
-/* 731 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-async function max(source, selector = identity_1.identityAsync) {
-    let atleastOnce = false;
-    let value = -Infinity;
-    for await (const item of source) {
-        if (!atleastOnce) {
-            atleastOnce = true;
-        }
-        const x = await selector(item);
-        if (x > value) {
-            value = x;
-        }
-    }
-    if (!atleastOnce) {
-        throw new Error('Sequence contains no elements');
-    }
-    return value;
-}
-exports.max = max;
-
-//# sourceMappingURL=max.js.map
-
-
-/***/ }),
-/* 732 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const toarray_1 = __webpack_require__(119);
-async function reduceRight(source, accumulator, ...seed) {
-    const array = await toarray_1.toArray(source);
-    const hasSeed = seed.length === 1;
-    let hasValue = false;
-    let acc = seed[0];
-    for (let offset = array.length - 1; offset >= 0; offset--) {
-        const item = array[offset];
-        if (hasValue || (hasValue = hasSeed)) {
-            acc = await accumulator(acc, item, offset);
-        }
-        else {
-            acc = item;
-            hasValue = true;
-        }
-    }
-    if (!(hasSeed || hasValue)) {
-        throw new Error('Sequence contains no elements');
-    }
-    return acc;
-}
-exports.reduceRight = reduceRight;
-
-//# sourceMappingURL=reduceright.js.map
-
-
-/***/ }),
+/* 731 */,
+/* 732 */,
 /* 733 */,
 /* 734 */,
 /* 735 */,
 /* 736 */,
-/* 737 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function elementAt(source, index) {
-    let i = index;
-    for await (const item of source) {
-        if (i === 0) {
-            return item;
-        }
-        i--;
-    }
-    return undefined;
-}
-exports.elementAt = elementAt;
-
-//# sourceMappingURL=elementat.js.map
-
-
-/***/ }),
+/* 737 */,
 /* 738 */,
 /* 739 */,
 /* 740 */
@@ -22741,20 +22488,27 @@ module.exports = require("fs");
 /***/ }),
 /* 748 */,
 /* 749 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const bindcallback_1 = __webpack_require__(270);
-function findIndex(source, predicate, thisArg) {
-    if (typeof predicate !== 'function') {
-        throw new TypeError();
-    }
-    const f = bindcallback_1.bindCallback(predicate, thisArg, 2);
+exports.findIndex = void 0;
+/**
+ * Returns the index of the first element in the array that satisfies the provided testing function.
+ * Otherwise, it returns -1, indicating that no element passed the test.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source An iterable sequence whose elements to apply the predicate to.
+ * @param {FindOptions<T>} options The options for a predicate for filtering, thisArg for binding and AbortSignal for cancellation.
+ * @returns {number} The index of the first element in the array that passes the test. Otherwise, -1.
+ */
+function findIndex(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate } = options;
     let i = 0;
     for (const item of source) {
-        if (f(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             return i;
         }
     }
@@ -22860,7 +22614,7 @@ var isPlainObject = _interopDefault(__webpack_require__(548));
 var nodeFetch = _interopDefault(__webpack_require__(454));
 var requestError = __webpack_require__(463);
 
-const VERSION = "5.4.4";
+const VERSION = "5.4.5";
 
 function getBufferResponse(response) {
   return response.arrayBuffer();
@@ -23014,92 +22768,8 @@ exports.$$rxSubscriber = exports.rxSubscriber;
 //# sourceMappingURL=rxSubscriber.js.map
 
 /***/ }),
-/* 755 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const toobserver_1 = __webpack_require__(903);
-const observer_1 = __webpack_require__(694);
-class BooleanSubscription {
-    constructor() {
-        this.isUnsubscribed = false;
-    }
-    unsubscribe() {
-        this.isUnsubscribed = true;
-    }
-}
-class AsyncIterableObservable {
-    constructor(source) {
-        this._source = source;
-    }
-    [observer_1.observable]() {
-        return this;
-    }
-    subscribe(next, error, complete) {
-        const observer = toobserver_1.toObserver(next, error, complete);
-        const subscription = new BooleanSubscription();
-        const it = this._source[Symbol.asyncIterator]();
-        const f = () => {
-            it.next()
-                .then(({ value, done }) => {
-                if (!subscription.isUnsubscribed) {
-                    if (done) {
-                        observer.complete();
-                    }
-                    else {
-                        observer.next(value);
-                        f();
-                    }
-                }
-            })
-                .catch(err => {
-                if (!subscription.isUnsubscribed) {
-                    observer.error(err);
-                }
-            });
-        };
-        f();
-        return subscription;
-    }
-}
-function toObservable(source) {
-    return new AsyncIterableObservable(source);
-}
-exports.toObservable = toObservable;
-
-//# sourceMappingURL=toobservable.js.map
-
-
-/***/ }),
-/* 756 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function single(source, predicate = () => true) {
-    let result;
-    let hasResult = false;
-    let i = 0;
-    for await (const item of source) {
-        if (hasResult && (await predicate(item, i++))) {
-            throw new Error('More than one element was found');
-        }
-        if (await predicate(item, i++)) {
-            result = item;
-            hasResult = true;
-        }
-    }
-    return result;
-}
-exports.single = single;
-
-//# sourceMappingURL=single.js.map
-
-
-/***/ }),
+/* 755 */,
+/* 756 */,
 /* 757 */,
 /* 758 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -23253,6 +22923,7 @@ module.exports = require("zlib");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.returnAsyncIterator = exports.returnIterator = void 0;
 /**
  * @ignore
  */
@@ -23399,42 +23070,14 @@ exports.publishLast = publishLast;
 
 /***/ }),
 /* 776 */,
-/* 777 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class GenerateAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(initialState, condition, iterate, resultSelector) {
-        super();
-        this._initialState = initialState;
-        this._condition = condition;
-        this._iterate = iterate;
-        this._resultSelector = resultSelector;
-    }
-    async *[Symbol.asyncIterator]() {
-        for (let i = this._initialState; await this._condition(i); i = await this._iterate(i)) {
-            yield await this._resultSelector(i);
-        }
-    }
-}
-function generate(initialState, condition, iterate, resultSelector) {
-    return new GenerateAsyncIterable(initialState, condition, iterate, resultSelector);
-}
-exports.generate = generate;
-
-//# sourceMappingURL=generate.js.map
-
-
-/***/ }),
+/* 777 */,
 /* 778 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.distinctUntilChanged = exports.DistinctUntilChangedIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const identity_1 = __webpack_require__(296);
 const comparer_1 = __webpack_require__(492);
@@ -23463,8 +23106,18 @@ class DistinctUntilChangedIterable extends iterablex_1.IterableX {
     }
 }
 exports.DistinctUntilChangedIterable = DistinctUntilChangedIterable;
-function distinctUntilChanged(keySelector = identity_1.identity, comparer = comparer_1.comparer) {
+/**
+ * Returns an async-iterable sequence that contains only distinct contiguous elements according to the optional keySelector and comparer.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TKey The type of the discriminator key computed for each element in the source sequence.
+ * @param {DistinctOptions<TSource, TKey = TSource>} [options] The optional options for adding a key selector and comparer.
+ * @returns {MonoTypeOperatorFunction<TSource>} An operator that returns an async-iterable that contains only distinct contiguous items.
+ */
+function distinctUntilChanged(options) {
     return function distinctUntilChangedOperatorFunction(source) {
+        const { ['keySelector']: keySelector = identity_1.identity, ['comparer']: comparer = comparer_1.comparer } = options || {};
         return new DistinctUntilChangedIterable(source, keySelector, comparer);
     };
 }
@@ -23474,7 +23127,304 @@ exports.distinctUntilChanged = distinctUntilChanged;
 
 
 /***/ }),
-/* 779 */,
+/* 779 */
+/***/ (function(module) {
+
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation.
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+***************************************************************************** */
+/* global global, define, System, Reflect, Promise */
+var __extends;
+var __assign;
+var __rest;
+var __decorate;
+var __param;
+var __metadata;
+var __awaiter;
+var __generator;
+var __exportStar;
+var __values;
+var __read;
+var __spread;
+var __spreadArrays;
+var __await;
+var __asyncGenerator;
+var __asyncDelegator;
+var __asyncValues;
+var __makeTemplateObject;
+var __importStar;
+var __importDefault;
+var __classPrivateFieldGet;
+var __classPrivateFieldSet;
+var __createBinding;
+(function (factory) {
+    var root = typeof global === "object" ? global : typeof self === "object" ? self : typeof this === "object" ? this : {};
+    if (typeof define === "function" && define.amd) {
+        define("tslib", ["exports"], function (exports) { factory(createExporter(root, createExporter(exports))); });
+    }
+    else if ( true && typeof module.exports === "object") {
+        factory(createExporter(root, createExporter(module.exports)));
+    }
+    else {
+        factory(createExporter(root));
+    }
+    function createExporter(exports, previous) {
+        if (exports !== root) {
+            if (typeof Object.create === "function") {
+                Object.defineProperty(exports, "__esModule", { value: true });
+            }
+            else {
+                exports.__esModule = true;
+            }
+        }
+        return function (id, v) { return exports[id] = previous ? previous(id, v) : v; };
+    }
+})
+(function (exporter) {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+
+    __extends = function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+
+    __assign = Object.assign || function (t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+        }
+        return t;
+    };
+
+    __rest = function (s, e) {
+        var t = {};
+        for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+            t[p] = s[p];
+        if (s != null && typeof Object.getOwnPropertySymbols === "function")
+            for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+                if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                    t[p[i]] = s[p[i]];
+            }
+        return t;
+    };
+
+    __decorate = function (decorators, target, key, desc) {
+        var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+        if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+        else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+        return c > 3 && r && Object.defineProperty(target, key, r), r;
+    };
+
+    __param = function (paramIndex, decorator) {
+        return function (target, key) { decorator(target, key, paramIndex); }
+    };
+
+    __metadata = function (metadataKey, metadataValue) {
+        if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(metadataKey, metadataValue);
+    };
+
+    __awaiter = function (thisArg, _arguments, P, generator) {
+        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+        return new (P || (P = Promise))(function (resolve, reject) {
+            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+            step((generator = generator.apply(thisArg, _arguments || [])).next());
+        });
+    };
+
+    __generator = function (thisArg, body) {
+        var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+        return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+        function verb(n) { return function (v) { return step([n, v]); }; }
+        function step(op) {
+            if (f) throw new TypeError("Generator is already executing.");
+            while (_) try {
+                if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+                if (y = 0, t) op = [op[0] & 2, t.value];
+                switch (op[0]) {
+                    case 0: case 1: t = op; break;
+                    case 4: _.label++; return { value: op[1], done: false };
+                    case 5: _.label++; y = op[1]; op = [0]; continue;
+                    case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                    default:
+                        if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                        if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                        if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                        if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                        if (t[2]) _.ops.pop();
+                        _.trys.pop(); continue;
+                }
+                op = body.call(thisArg, _);
+            } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+            if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+        }
+    };
+
+    __exportStar = function(m, exports) {
+        for (var p in m) if (p !== "default" && !exports.hasOwnProperty(p)) __createBinding(exports, m, p);
+    };
+
+    __createBinding = Object.create ? (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+    }) : (function(o, m, k, k2) {
+        if (k2 === undefined) k2 = k;
+        o[k2] = m[k];
+    });
+
+    __values = function (o) {
+        var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
+        if (m) return m.call(o);
+        if (o && typeof o.length === "number") return {
+            next: function () {
+                if (o && i >= o.length) o = void 0;
+                return { value: o && o[i++], done: !o };
+            }
+        };
+        throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
+    };
+
+    __read = function (o, n) {
+        var m = typeof Symbol === "function" && o[Symbol.iterator];
+        if (!m) return o;
+        var i = m.call(o), r, ar = [], e;
+        try {
+            while ((n === void 0 || n-- > 0) && !(r = i.next()).done) ar.push(r.value);
+        }
+        catch (error) { e = { error: error }; }
+        finally {
+            try {
+                if (r && !r.done && (m = i["return"])) m.call(i);
+            }
+            finally { if (e) throw e.error; }
+        }
+        return ar;
+    };
+
+    __spread = function () {
+        for (var ar = [], i = 0; i < arguments.length; i++)
+            ar = ar.concat(__read(arguments[i]));
+        return ar;
+    };
+
+    __spreadArrays = function () {
+        for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+        for (var r = Array(s), k = 0, i = 0; i < il; i++)
+            for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+                r[k] = a[j];
+        return r;
+    };
+
+    __await = function (v) {
+        return this instanceof __await ? (this.v = v, this) : new __await(v);
+    };
+
+    __asyncGenerator = function (thisArg, _arguments, generator) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var g = generator.apply(thisArg, _arguments || []), i, q = [];
+        return i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i;
+        function verb(n) { if (g[n]) i[n] = function (v) { return new Promise(function (a, b) { q.push([n, v, a, b]) > 1 || resume(n, v); }); }; }
+        function resume(n, v) { try { step(g[n](v)); } catch (e) { settle(q[0][3], e); } }
+        function step(r) { r.value instanceof __await ? Promise.resolve(r.value.v).then(fulfill, reject) : settle(q[0][2], r);  }
+        function fulfill(value) { resume("next", value); }
+        function reject(value) { resume("throw", value); }
+        function settle(f, v) { if (f(v), q.shift(), q.length) resume(q[0][0], q[0][1]); }
+    };
+
+    __asyncDelegator = function (o) {
+        var i, p;
+        return i = {}, verb("next"), verb("throw", function (e) { throw e; }), verb("return"), i[Symbol.iterator] = function () { return this; }, i;
+        function verb(n, f) { i[n] = o[n] ? function (v) { return (p = !p) ? { value: __await(o[n](v)), done: n === "return" } : f ? f(v) : v; } : f; }
+    };
+
+    __asyncValues = function (o) {
+        if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+        var m = o[Symbol.asyncIterator], i;
+        return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+        function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+        function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+    };
+
+    __makeTemplateObject = function (cooked, raw) {
+        if (Object.defineProperty) { Object.defineProperty(cooked, "raw", { value: raw }); } else { cooked.raw = raw; }
+        return cooked;
+    };
+
+    var __setModuleDefault = Object.create ? (function(o, v) {
+        Object.defineProperty(o, "default", { enumerable: true, value: v });
+    }) : function(o, v) {
+        o["default"] = v;
+    };
+
+    __importStar = function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+
+    __importDefault = function (mod) {
+        return (mod && mod.__esModule) ? mod : { "default": mod };
+    };
+
+    __classPrivateFieldGet = function (receiver, privateMap) {
+        if (!privateMap.has(receiver)) {
+            throw new TypeError("attempted to get private field on non-instance");
+        }
+        return privateMap.get(receiver);
+    };
+
+    __classPrivateFieldSet = function (receiver, privateMap, value) {
+        if (!privateMap.has(receiver)) {
+            throw new TypeError("attempted to set private field on non-instance");
+        }
+        privateMap.set(receiver, value);
+        return value;
+    };
+
+    exporter("__extends", __extends);
+    exporter("__assign", __assign);
+    exporter("__rest", __rest);
+    exporter("__decorate", __decorate);
+    exporter("__param", __param);
+    exporter("__metadata", __metadata);
+    exporter("__awaiter", __awaiter);
+    exporter("__generator", __generator);
+    exporter("__exportStar", __exportStar);
+    exporter("__createBinding", __createBinding);
+    exporter("__values", __values);
+    exporter("__read", __read);
+    exporter("__spread", __spread);
+    exporter("__spreadArrays", __spreadArrays);
+    exporter("__await", __await);
+    exporter("__asyncGenerator", __asyncGenerator);
+    exporter("__asyncDelegator", __asyncDelegator);
+    exporter("__asyncValues", __asyncValues);
+    exporter("__makeTemplateObject", __makeTemplateObject);
+    exporter("__importStar", __importStar);
+    exporter("__importDefault", __importDefault);
+    exporter("__classPrivateFieldGet", __classPrivateFieldGet);
+    exporter("__classPrivateFieldSet", __classPrivateFieldSet);
+});
+
+
+/***/ }),
 /* 780 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -23614,20 +23564,18 @@ var RefCountSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.zip = exports.ZipIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
-const identity_1 = __webpack_require__(296);
 const returniterator_1 = __webpack_require__(764);
 class ZipIterable extends iterablex_1.IterableX {
-    constructor(sources, fn) {
+    constructor(sources) {
         super();
         this._sources = sources;
-        this._fn = fn;
     }
     // eslint-disable-next-line consistent-return
     *[Symbol.iterator]() {
-        const fn = this._fn;
         const sourcesLength = this._sources.length;
-        const its = this._sources.map(x => x[Symbol.iterator]());
+        const its = this._sources.map((x) => x[Symbol.iterator]());
         while (sourcesLength > 0) {
             const values = new Array(sourcesLength);
             for (let index = -1; ++index < sourcesLength;) {
@@ -23638,18 +23586,13 @@ class ZipIterable extends iterablex_1.IterableX {
                 }
                 values[index] = result.value;
             }
-            yield fn(values);
+            yield values;
         }
     }
 }
 exports.ZipIterable = ZipIterable;
 function zip(...sources) {
-    let fn = (sources.shift() || identity_1.identity);
-    if (fn && typeof fn !== 'function') {
-        sources.unshift(fn);
-        fn = identity_1.identity;
-    }
-    return new ZipIterable(sources, fn);
+    return new ZipIterable(sources);
 }
 exports.zip = zip;
 
@@ -23694,7 +23637,44 @@ module.exports = ltr
 
 /***/ }),
 /* 791 */,
-/* 792 */,
+/* 792 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.throwIfAborted = exports.AbortError = void 0;
+const isiterable_1 = __webpack_require__(35);
+class AbortError extends Error {
+    constructor(message = 'The operation has been aborted') {
+        super(message);
+        Object.setPrototypeOf(this, AbortError.prototype);
+        Error.captureStackTrace(this, this.constructor);
+        this.name = 'AbortError';
+    }
+    get [Symbol.toStringTag]() {
+        return 'AbortError';
+    }
+}
+exports.AbortError = AbortError;
+function throwIfAborted(signal) {
+    if (signal && signal.aborted) {
+        throw new AbortError();
+    }
+}
+exports.throwIfAborted = throwIfAborted;
+Object.defineProperty(AbortError, Symbol.hasInstance, {
+    writable: true,
+    configurable: true,
+    value(x) {
+        return (isiterable_1.isObject(x) && (x.constructor.name === 'AbortError' || x[Symbol.toStringTag] === 'AbortError'));
+    },
+});
+
+//# sourceMappingURL=aborterror.js.map
+
+
+/***/ }),
 /* 793 */,
 /* 794 */
 /***/ (function(module) {
@@ -23793,6 +23773,7 @@ module.exports = cmp
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.thenByDescending = exports.thenBy = exports.orderByDescending = exports.orderBy = exports.OrderedIterableX = exports.OrderedIterableBaseX = void 0;
 const iterablex_1 = __webpack_require__(954);
 const sorter_1 = __webpack_require__(613);
 class OrderedIterableBaseX extends iterablex_1.IterableX {
@@ -23844,18 +23825,51 @@ class OrderedIterableX extends OrderedIterableBaseX {
     }
 }
 exports.OrderedIterableX = OrderedIterableX;
+/**
+ * Sorts the elements of a sequence in ascending order according to a key by using a specified comparer.
+ *
+ * @export
+ * @template TKey The type of the elements of source.
+ * @template TSource The type of the key returned by keySelector.
+ * @param {(item: TSource) => TKey} keySelector A function to extract a key from an element.
+ * @param {(fst: TKey, snd: TKey) => number} [comparer=defaultSorter] A comparer to compare keys.
+ * @returns {UnaryFunction<Iterable<TSource>, OrderedIterableX<TKey, TSource>>} An ordered iterable sequence whose
+ * elements are sorted according to a key and comparer.
+ */
 function orderBy(keySelector, comparer = sorter_1.sorter) {
     return function orderByOperatorFunction(source) {
         return new OrderedIterableX(source, keySelector, comparer, false);
     };
 }
 exports.orderBy = orderBy;
+/**
+ * Sorts the elements of a sequence in descending order according to a key by using a specified comparer.
+ *
+ * @export
+ * @template TKey The type of the elements of source.
+ * @template TSource The type of the key returned by keySelector.
+ * @param {(item: TSource) => TKey} keySelector A function to extract a key from an element.
+ * @param {(fst: TKey, snd: TKey) => number} [comparer=defaultSorter] A comparer to compare keys.
+ * @returns {UnaryFunction<Iterable<TSource>, OrderedIterableX<TKey, TSource>>} An ordered iterable sequence whose
+ * elements are sorted in descending order according to a key and comparer.
+ */
 function orderByDescending(keySelector, comparer = sorter_1.sorter) {
     return function orderByDescendingOperatorFunction(source) {
         return new OrderedIterableX(source, keySelector, comparer, true);
     };
 }
 exports.orderByDescending = orderByDescending;
+/**
+ * Performs a subsequent ordering of the elements in a sequence in ascending order according to a key using a specified comparer.
+ *
+ * @export
+ * @template TKey The type of the elements of source.
+ * @template TSource The type of the key returned by keySelector.
+ * @param {(item: TSource) => TKey} keySelector A function to extract a key from an element.
+ * @param {(fst: TKey, snd: TKey) => number} [comparer=defaultSorter] A comparer to compare keys.
+ * @returns {UnaryFunction<Iterable<TSource>, OrderedIterableX<TKey, TSource>>} An ordered iterable whose elements are
+ * sorted according to a key and comparer.
+ */
 function thenBy(keySelector, comparer = sorter_1.sorter) {
     return function thenByOperatorFunction(source) {
         const orderSource = source;
@@ -23863,6 +23877,17 @@ function thenBy(keySelector, comparer = sorter_1.sorter) {
     };
 }
 exports.thenBy = thenBy;
+/**
+ * Performs a subsequent ordering of the elements in a sequence in descending order according to a key using a specified comparer.
+ *
+ * @export
+ * @template TKey The type of the elements of source.
+ * @template TSource The type of the key returned by keySelector.
+ * @param {(item: TSource) => TKey} keySelector A function to extract a key from an element.
+ * @param {(fst: TKey, snd: TKey) => number} [comparer=defaultSorter] A comparer to compare keys.
+ * @returns {UnaryFunction<Iterable<TSource>, OrderedIterableX<TKey, TSource>>} An ordered iterable whose elements are
+ * sorted in descending order according to a key and comparer.
+ */
 function thenByDescending(keySelector, comparer = sorter_1.sorter) {
     return function thenByDescendingOperatorFunction(source) {
         const orderSource = source;
@@ -23992,6 +24017,7 @@ module.exports = minor
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.concat = exports.ConcatIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class ConcatIterable extends iterablex_1.IterableX {
     constructor(source) {
@@ -24005,6 +24031,15 @@ class ConcatIterable extends iterablex_1.IterableX {
     }
 }
 exports.ConcatIterable = ConcatIterable;
+/**
+ * Concatenates all iterable sequences in the given sequences, as long as the previous iterable
+ * sequence terminated successfully.
+ *
+ * @export
+ * @template T The type of the elements in the sequences.
+ * @param {...Iterable<T>[]} args The iterable sources.
+ * @returns {IterableX<T>} An iterable sequence that contains the elements of each given sequence, in sequential order.
+ */
 function concat(...args) {
     return new ConcatIterable(args);
 }
@@ -24019,16 +24054,31 @@ exports.concat = concat;
 /* 808 */,
 /* 809 */,
 /* 810 */
-/***/ (function(__unusedmodule, exports) {
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function toMap(source, keySelector, elementSelector) {
+exports.toMap = void 0;
+const identity_1 = __webpack_require__(296);
+/**
+ * Converts an async-iterable to a map with a key selector and options for an element selector and cancellation.
+ *
+ * @export
+ * @template TSource The type of elements in the source collection.
+ * @template TKey The type of key used for the map.
+ * @template TElement The type of element to use for the map.
+ * @param {AsyncIterable<TSource>} source The source collection to turn into a map.
+ * @param {ToMapOptions<TSource, TElement>} options The options for getting the key and element for the map.
+ * @returns {(Map<TKey, TElement | TSource>)} A map containing the key and elements from the selector functions.
+ */
+function toMap(source, options) {
+    const { ['elementSelector']: elementSelector = identity_1.identity, ['keySelector']: keySelector = identity_1.identity, } = options || {};
     const map = new Map();
     for (const item of source) {
-        const value = elementSelector ? elementSelector(item) : item;
-        map.set(keySelector(item), value);
+        const value = elementSelector(item);
+        const key = keySelector(item);
+        map.set(key, value);
     }
     return map;
 }
@@ -24132,6 +24182,7 @@ exports.createTokenAuth = createTokenAuth;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.throwError = void 0;
 const iterablex_1 = __webpack_require__(954);
 class ThrowIterable extends iterablex_1.IterableX {
     constructor(error) {
@@ -24142,6 +24193,13 @@ class ThrowIterable extends iterablex_1.IterableX {
         throw this._error;
     }
 }
+/**
+ * Creates an async-iterable that throws the specified error upon iterating.
+ *
+ * @export
+ * @param {*} error The error to throw upon iterating the iterable.
+ * @returns {AsyncIterableX<never>} An iterable that throws when iterated.
+ */
 function throwError(error) {
     return new ThrowIterable(error);
 }
@@ -24164,68 +24222,7 @@ module.exports = clean
 
 /***/ }),
 /* 816 */,
-/* 817 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-/**
- * @ignore
- */
-function defaultCompare(key, minValue) {
-    // eslint-disable-next-line no-nested-ternary
-    return key > minValue ? 1 : key < minValue ? -1 : 0;
-}
-exports.defaultCompare = defaultCompare;
-/**
- * @ignore
- */
-class ExtremaByIterable extends iterablex_1.IterableX {
-    constructor(source, keyFn, cmp) {
-        super();
-        this._source = source;
-        this._keyFn = keyFn;
-        this._cmp = cmp;
-    }
-    *[Symbol.iterator]() {
-        let result = [];
-        let next;
-        const it = this._source[Symbol.iterator]();
-        if ((next = it.next()).done) {
-            throw new Error('Sequence contains no elements');
-        }
-        const current = next.value;
-        let resKey = this._keyFn(current);
-        result.push(current);
-        while (!(next = it.next()).done) {
-            const curr = next.value;
-            const key = this._keyFn(curr);
-            const c = this._cmp(key, resKey);
-            if (c === 0) {
-                result.push(curr);
-            }
-            else if (c > 0) {
-                result = [curr];
-                resKey = key;
-            }
-        }
-        yield* result;
-    }
-}
-/**
- * @ignore
- */
-function extremaBy(source, keyFn, cmp) {
-    return new ExtremaByIterable(source, keyFn, cmp);
-}
-exports.extremaBy = extremaBy;
-
-//# sourceMappingURL=_extremaby.js.map
-
-
-/***/ }),
+/* 817 */,
 /* 818 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -24407,13 +24404,13 @@ function windowTime(windowTimeSpan) {
         scheduler = arguments[2];
     }
     else if (isNumeric_1.isNumeric(arguments[2])) {
-        maxWindowSize = arguments[2];
+        maxWindowSize = Number(arguments[2]);
     }
     if (isScheduler_1.isScheduler(arguments[1])) {
         scheduler = arguments[1];
     }
     else if (isNumeric_1.isNumeric(arguments[1])) {
-        windowCreationInterval = arguments[1];
+        windowCreationInterval = Number(arguments[1]);
     }
     return function windowTimeOperatorFunction(source) {
         return source.lift(new WindowTimeOperator(windowTimeSpan, windowCreationInterval, maxWindowSize, scheduler));
@@ -24547,23 +24544,66 @@ function dispatchWindowClose(state) {
 //# sourceMappingURL=windowTime.js.map
 
 /***/ }),
-/* 825 */,
+/* 825 */
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.extremaBy = void 0;
+function extremaBy(source, selector, comparer) {
+    let result = [];
+    const it = source[Symbol.iterator]();
+    const { value, done } = it.next();
+    if (done) {
+        throw new Error('Sequence contains no elements');
+    }
+    let resKey = selector(value);
+    result.push(value);
+    let next;
+    while (!(next = it.next()).done) {
+        const current = next.value;
+        const key = selector(current);
+        const cmp = comparer(key, resKey);
+        if (cmp === 0) {
+            result.push(current);
+        }
+        else if (cmp > 0) {
+            result = [current];
+            resKey = key;
+        }
+    }
+    return result;
+}
+exports.extremaBy = extremaBy;
+
+//# sourceMappingURL=_extremaby.js.map
+
+
+/***/ }),
 /* 826 */
 /***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.count = void 0;
 /**
- * Returns a number that represents how many elements in the specified sequence satisfy a condition if present,
- * else the number of items in the collection.
- * @param {Iterable<T>} source A sequence that contains elements to be tested and counted.
- * @param {function(value: T): boolean} [predicate] A function to test each element for a condition.
+ * Returns a promise that represents how many elements in the specified iterable sequence satisfy a condition
+ * otherwise, the number of items in the sequence.
+ *
+ * @export
+ * @template T The type of elements in the source collection.
+ * @param {Iterable<T>} source An iterable sequence that contains elements to be counted.
+ * @param {OptionalFindOptions<T>} [options] The options for a predicate for filtering and thisArg for binding.
+ * @returns {number} The number of matching elements for the given condition if provided, otherwise
+ * the number of elements in the sequence.
  */
-function count(source, predicate = () => true) {
+function count(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate = () => true } = options || {};
     let i = 0;
     for (const item of source) {
-        if (predicate(item)) {
+        if (predicate.call(thisArg, item, i)) {
             i++;
         }
     }
@@ -24595,6 +24635,7 @@ exports.identity = identity;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.groupBy = exports.GroupByIterable = exports.GroupedIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const identity_1 = __webpack_require__(296);
 const _grouping_1 = __webpack_require__(311);
@@ -24604,34 +24645,43 @@ class GroupedIterable extends iterablex_1.IterableX {
         this.key = key;
         this._source = source;
     }
-    [Symbol.iterator]() {
-        return this._source[Symbol.iterator]();
+    *[Symbol.iterator]() {
+        for (const item of this._source) {
+            yield item;
+        }
     }
 }
 exports.GroupedIterable = GroupedIterable;
 class GroupByIterable extends iterablex_1.IterableX {
-    constructor(source, keySelector, elementSelector, resultSelector) {
+    constructor(source, keySelector, elementSelector) {
         super();
         this._source = source;
         this._keySelector = keySelector;
         this._elementSelector = elementSelector;
-        this._resultSelector = resultSelector;
     }
     *[Symbol.iterator]() {
         const map = _grouping_1.createGrouping(this._source, this._keySelector, this._elementSelector);
         for (const [key, values] of map) {
-            yield this._resultSelector(key, values);
+            yield new GroupedIterable(key, values);
         }
     }
 }
 exports.GroupByIterable = GroupByIterable;
-function groupByResultIdentity(key, values) {
-    return new GroupedIterable(key, values);
-}
-exports.groupByResultIdentity = groupByResultIdentity;
-function groupBy(keySelector, elementSelector = identity_1.identity, resultSelector = groupByResultIdentity) {
+/**
+ * Groups the elements of an async-iterable sequence and selects the resulting elements by using a specified function.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TKey The type of the grouping key computed for each element in the source sequence.
+ * @template TValue The type of the elements within the groups computed for each element in the source sequence.
+ * @param {((value: TSource) => TKey)} keySelector A function to extract the key for each element.
+ * @param {((value: TSource) => TValue)} [elementSelector=identity] A function to map each source element to an element in an async-enumerable group.
+ * @returns {OperatorFunction<TSource, TResult>} A sequence of async-iterable groups, each of which corresponds to a unique key value,
+ * containing all elements that share that same key value.
+ */
+function groupBy(keySelector, elementSelector = identity_1.identity) {
     return function groupByOperatorFunction(source) {
-        return new GroupByIterable(source, keySelector, elementSelector, resultSelector);
+        return new GroupByIterable(source, keySelector, elementSelector);
     };
 }
 exports.groupBy = groupBy;
@@ -24647,13 +24697,9 @@ const {MAX_LENGTH} = __webpack_require__(181)
 const { re, t } = __webpack_require__(906)
 const SemVer = __webpack_require__(65)
 
+const parseOptions = __webpack_require__(143)
 const parse = (version, options) => {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+  options = parseOptions(options)
 
   if (version instanceof SemVer) {
     return version
@@ -24691,7 +24737,8 @@ module.exports = parse
 Object.defineProperty(exports, "__esModule", { value: true });
 var QueueAction_1 = __webpack_require__(227);
 var QueueScheduler_1 = __webpack_require__(978);
-exports.queue = new QueueScheduler_1.QueueScheduler(QueueAction_1.QueueAction);
+exports.queueScheduler = new QueueScheduler_1.QueueScheduler(QueueAction_1.QueueAction);
+exports.queue = exports.queueScheduler;
 //# sourceMappingURL=queue.js.map
 
 /***/ }),
@@ -24701,8 +24748,18 @@ exports.queue = new QueueScheduler_1.QueueScheduler(QueueAction_1.QueueAction);
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.repeatValue = void 0;
 const of_1 = __webpack_require__(902);
-const repeat_1 = __webpack_require__(696);
+const repeat_1 = __webpack_require__(624);
+/**
+ * Repeats a given value for the specified number of times as an iterable.
+ *
+ * @export
+ * @template TSource The type of element to repeat.
+ * @param {TSource} value The value to repeat as an iterable.
+ * @param {number} [count=-1] The number of times to repeat the value, infinite if not specified.
+ * @returns {AsyncIterableX<TSource>} An iterable with a single item that is repeated over the specified times.
+ */
 function repeatValue(value, count = -1) {
     return new repeat_1.RepeatIterable(of_1.of(value), count);
 }
@@ -24885,10 +24942,20 @@ exports.merge = merge;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function first(source, predicate = () => true) {
+exports.first = void 0;
+/**
+ * Returns the first element of an iterable sequence that matches the predicate if provided, or undefined if no such element exists.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source Source async-enumerable sequence.
+ * @returns {(S | undefined)} The first element in the iterable sequence, or undefined if no such element exists.
+ */
+function first(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate = () => true } = options || {};
     let i = 0;
     for (const item of source) {
-        if (predicate(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             return item;
         }
     }
@@ -24914,151 +24981,61 @@ const Endpoints = {
     addSelectedRepoToOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
     cancelWorkflowRun: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/cancel"],
     createOrUpdateOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}"],
-    createOrUpdateRepoSecret: ["PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
-    createOrUpdateSecretForRepo: ["PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamed: ["actions", "createOrUpdateRepoSecret"],
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
-    createRegistrationToken: ["POST /repos/{owner}/{repo}/actions/runners/registration-token", {}, {
-      renamed: ["actions", "createRegistrationTokenForRepo"]
-    }],
+    createOrUpdateRepoSecret: ["PUT /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     createRegistrationTokenForOrg: ["POST /orgs/{org}/actions/runners/registration-token"],
     createRegistrationTokenForRepo: ["POST /repos/{owner}/{repo}/actions/runners/registration-token"],
-    createRemoveToken: ["POST /repos/{owner}/{repo}/actions/runners/remove-token", {}, {
-      renamed: ["actions", "createRemoveTokenForRepo"]
-    }],
     createRemoveTokenForOrg: ["POST /orgs/{org}/actions/runners/remove-token"],
     createRemoveTokenForRepo: ["POST /repos/{owner}/{repo}/actions/runners/remove-token"],
     deleteArtifact: ["DELETE /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
     deleteOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}"],
-    deleteRepoSecret: ["DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
-    deleteSecretFromRepo: ["DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamed: ["actions", "deleteRepoSecret"],
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
+    deleteRepoSecret: ["DELETE /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     deleteSelfHostedRunnerFromOrg: ["DELETE /orgs/{org}/actions/runners/{runner_id}"],
     deleteSelfHostedRunnerFromRepo: ["DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     deleteWorkflowRunLogs: ["DELETE /repos/{owner}/{repo}/actions/runs/{run_id}/logs"],
     downloadArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}/{archive_format}"],
     downloadJobLogsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs"],
-    downloadWorkflowJobLogs: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs", {}, {
-      renamed: ["actions", "downloadJobLogsForWorkflowRun"]
-    }],
     downloadWorkflowRunLogs: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs"],
     getArtifact: ["GET /repos/{owner}/{repo}/actions/artifacts/{artifact_id}"],
     getJobForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}"],
     getOrgPublicKey: ["GET /orgs/{org}/actions/secrets/public-key"],
     getOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}"],
-    getPublicKey: ["GET /repos/{owner}/{repo}/actions/secrets/public-key", {}, {
-      renamed: ["actions", "getRepoPublicKey"]
-    }],
     getRepoPublicKey: ["GET /repos/{owner}/{repo}/actions/secrets/public-key"],
-    getRepoSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
-    getSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}", {}, {
-      renamed: ["actions", "getRepoSecret"],
-      renamedParameters: {
-        name: "secret_name"
-      }
-    }],
-    getSelfHostedRunner: ["GET /repos/{owner}/{repo}/actions/runners/{runner_id}", {}, {
-      renamed: ["actions", "getSelfHostedRunnerForRepo"]
-    }],
+    getRepoSecret: ["GET /repos/{owner}/{repo}/actions/secrets/{secret_name}"],
     getSelfHostedRunnerForOrg: ["GET /orgs/{org}/actions/runners/{runner_id}"],
     getSelfHostedRunnerForRepo: ["GET /repos/{owner}/{repo}/actions/runners/{runner_id}"],
     getWorkflow: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}"],
-    getWorkflowJob: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}", {}, {
-      renamed: ["actions", "getJobForWorkflowRun"]
-    }],
     getWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}"],
     getWorkflowRunUsage: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/timing"],
     getWorkflowUsage: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/timing"],
     listArtifactsForRepo: ["GET /repos/{owner}/{repo}/actions/artifacts"],
-    listDownloadsForSelfHostedRunnerApplication: ["GET /repos/{owner}/{repo}/actions/runners/downloads", {}, {
-      renamed: ["actions", "listRunnerApplicationsForRepo"]
-    }],
     listJobsForWorkflowRun: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs"],
     listOrgSecrets: ["GET /orgs/{org}/actions/secrets"],
     listRepoSecrets: ["GET /repos/{owner}/{repo}/actions/secrets"],
-    listRepoWorkflowRuns: ["GET /repos/{owner}/{repo}/actions/runs", {}, {
-      renamed: ["actions", "listWorkflowRunsForRepo"]
-    }],
     listRepoWorkflows: ["GET /repos/{owner}/{repo}/actions/workflows"],
     listRunnerApplicationsForOrg: ["GET /orgs/{org}/actions/runners/downloads"],
     listRunnerApplicationsForRepo: ["GET /repos/{owner}/{repo}/actions/runners/downloads"],
-    listSecretsForRepo: ["GET /repos/{owner}/{repo}/actions/secrets", {}, {
-      renamed: ["actions", "listRepoSecrets"]
-    }],
     listSelectedReposForOrgSecret: ["GET /orgs/{org}/actions/secrets/{secret_name}/repositories"],
     listSelfHostedRunnersForOrg: ["GET /orgs/{org}/actions/runners"],
     listSelfHostedRunnersForRepo: ["GET /repos/{owner}/{repo}/actions/runners"],
-    listWorkflowJobLogs: ["GET /repos/{owner}/{repo}/actions/jobs/{job_id}/logs", {}, {
-      renamed: ["actions", "downloadWorkflowJobLogs"]
-    }],
     listWorkflowRunArtifacts: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts"],
-    listWorkflowRunLogs: ["GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs", {}, {
-      renamed: ["actions", "downloadWorkflowRunLogs"]
-    }],
     listWorkflowRuns: ["GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs"],
     listWorkflowRunsForRepo: ["GET /repos/{owner}/{repo}/actions/runs"],
     reRunWorkflow: ["POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun"],
     removeSelectedRepoFromOrgSecret: ["DELETE /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}"],
-    removeSelfHostedRunner: ["DELETE /repos/{owner}/{repo}/actions/runners/{runner_id}", {}, {
-      renamed: ["actions", "deleteSelfHostedRunnerFromRepo"]
-    }],
     setSelectedReposForOrgSecret: ["PUT /orgs/{org}/actions/secrets/{secret_name}/repositories"]
   },
   activity: {
     checkRepoIsStarredByAuthenticatedUser: ["GET /user/starred/{owner}/{repo}"],
-    checkStarringRepo: ["GET /user/starred/{owner}/{repo}", {}, {
-      renamed: ["activity", "checkRepoIsStarredByAuthenticatedUser"]
-    }],
     deleteRepoSubscription: ["DELETE /repos/{owner}/{repo}/subscription"],
     deleteThreadSubscription: ["DELETE /notifications/threads/{thread_id}/subscription"],
     getFeeds: ["GET /feeds"],
     getRepoSubscription: ["GET /repos/{owner}/{repo}/subscription"],
     getThread: ["GET /notifications/threads/{thread_id}"],
-    getThreadSubscription: ["PUT /notifications", {}, {
-      renamed: ["activity", "getThreadSubscriptionForAuthenticatedUser"]
-    }],
     getThreadSubscriptionForAuthenticatedUser: ["GET /notifications/threads/{thread_id}/subscription"],
     listEventsForAuthenticatedUser: ["GET /users/{username}/events"],
-    listEventsForOrg: ["GET /users/{username}/events/orgs/{org}", {}, {
-      renamed: ["activity", "listOrgEventsForAuthenticatedUser"]
-    }],
-    listEventsForUser: ["GET /users/{username}/events", {}, {
-      renamed: ["activity", "listEventsForAuthenticatedUser"]
-    }],
-    listFeeds: ["GET /feeds", {}, {
-      renamed: ["activity", "getFeeds"]
-    }],
-    listNotifications: ["GET /notifications", {}, {
-      renamed: ["activity", "listNotificationsForAuthenticatedUser"]
-    }],
     listNotificationsForAuthenticatedUser: ["GET /notifications"],
-    listNotificationsForRepo: ["GET /repos/{owner}/{repo}/notifications", {}, {
-      renamed: ["activity", "listRepoNotificationsForAuthenticatedUser"]
-    }],
     listOrgEventsForAuthenticatedUser: ["GET /users/{username}/events/orgs/{org}"],
     listPublicEvents: ["GET /events"],
-    listPublicEventsForOrg: ["GET /orgs/{org}/events", {}, {
-      renamed: ["activity", "listPublicOrgEvents"]
-    }],
     listPublicEventsForRepoNetwork: ["GET /networks/{owner}/{repo}/events"],
     listPublicEventsForUser: ["GET /users/{username}/events/public"],
     listPublicOrgEvents: ["GET /orgs/{org}/events"],
@@ -25072,24 +25049,12 @@ const Endpoints = {
     listStargazersForRepo: ["GET /repos/{owner}/{repo}/stargazers"],
     listWatchedReposForAuthenticatedUser: ["GET /user/subscriptions"],
     listWatchersForRepo: ["GET /repos/{owner}/{repo}/subscribers"],
-    markAsRead: ["PUT /notifications", {}, {
-      renamed: ["activity", "markNotificationsAsRead"]
-    }],
     markNotificationsAsRead: ["PUT /notifications"],
-    markNotificationsAsReadForRepo: ["PUT /repos/{owner}/{repo}/notifications", {}, {
-      renamed: ["activity", "markRepoNotificationsAsRead"]
-    }],
     markRepoNotificationsAsRead: ["PUT /repos/{owner}/{repo}/notifications"],
     markThreadAsRead: ["PATCH /notifications/threads/{thread_id}"],
     setRepoSubscription: ["PUT /repos/{owner}/{repo}/subscription"],
     setThreadSubscription: ["PUT /notifications/threads/{thread_id}/subscription"],
-    starRepo: ["PUT /user/starred/{owner}/{repo}", {}, {
-      renamed: ["activity", "starRepoForAuthenticatedUser"]
-    }],
     starRepoForAuthenticatedUser: ["PUT /user/starred/{owner}/{repo}"],
-    unstarRepo: ["DELETE /user/starred/{owner}/{repo}", {}, {
-      renamed: ["activity", "unstarRepoForAuthenticatedUser"]
-    }],
     unstarRepoForAuthenticatedUser: ["DELETE /user/starred/{owner}/{repo}"]
   },
   apps: {
@@ -25097,12 +25062,6 @@ const Endpoints = {
       mediaType: {
         previews: ["machine-man"]
       }
-    }],
-    checkAccountIsAssociatedWithAny: ["GET /marketplace_listing/accounts/{account_id}", {}, {
-      renamed: ["apps", "getSubscriptionPlanForAccount"]
-    }],
-    checkAccountIsAssociatedWithAnyStubbed: ["GET /marketplace_listing/stubbed/accounts/{account_id}", {}, {
-      renamed: ["apps", "getSubscriptionPlanForAccountStubbed"]
     }],
     checkToken: ["POST /applications/{client_id}/token"],
     createContentAttachment: ["POST /content_references/{content_reference_id}/attachments", {
@@ -25115,13 +25074,6 @@ const Endpoints = {
       mediaType: {
         previews: ["machine-man"]
       }
-    }],
-    createInstallationToken: ["POST /app/installations/{installation_id}/access_tokens", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }, {
-      renamed: ["apps", "createInstallationAccessToken"]
     }],
     deleteAuthorization: ["DELETE /applications/{client_id}/grant"],
     deleteInstallation: ["DELETE /app/installations/{installation_id}", {
@@ -25164,12 +25116,6 @@ const Endpoints = {
     }],
     listAccountsForPlan: ["GET /marketplace_listing/plans/{plan_id}/accounts"],
     listAccountsForPlanStubbed: ["GET /marketplace_listing/stubbed/plans/{plan_id}/accounts"],
-    listAccountsUserOrOrgOnPlan: ["GET /marketplace_listing/plans/{plan_id}/accounts", {}, {
-      renamed: ["apps", "listAccountsForPlan"]
-    }],
-    listAccountsUserOrOrgOnPlanStubbed: ["GET /marketplace_listing/stubbed/plans/{plan_id}/accounts", {}, {
-      renamed: ["apps", "listAccountsForPlanStubbed"]
-    }],
     listInstallationReposForAuthenticatedUser: ["GET /user/installations/{installation_id}/repositories", {
       mediaType: {
         previews: ["machine-man"]
@@ -25185,21 +25131,8 @@ const Endpoints = {
         previews: ["machine-man"]
       }
     }],
-    listMarketplacePurchasesForAuthenticatedUser: ["GET /user/marketplace_purchases", {}, {
-      renamed: ["apps", "listSubscriptionsForAuthenticatedUser"]
-    }],
-    listMarketplacePurchasesForAuthenticatedUserStubbed: ["GET /user/marketplace_purchases/stubbed", {}, {
-      renamed: ["apps", "listSubscriptionsForAuthenticatedUserStubbed"]
-    }],
     listPlans: ["GET /marketplace_listing/plans"],
     listPlansStubbed: ["GET /marketplace_listing/stubbed/plans"],
-    listRepos: ["GET /installation/repositories", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }, {
-      renamed: ["apps", "listReposAccessibleToInstallation"]
-    }],
     listReposAccessibleToInstallation: ["GET /installation/repositories", {
       mediaType: {
         previews: ["machine-man"]
@@ -25214,9 +25147,6 @@ const Endpoints = {
     }],
     resetToken: ["PATCH /applications/{client_id}/token"],
     revokeInstallationAccessToken: ["DELETE /installation/token"],
-    revokeInstallationToken: ["DELETE /installation/token", {}, {
-      renamed: ["apps", "revokeInstallationAccessToken"]
-    }],
     suspendInstallation: ["PUT /app/installations/{installation_id}/suspended"],
     unsuspendInstallation: ["DELETE /app/installations/{installation_id}/suspended"]
   },
@@ -25296,13 +25226,6 @@ const Endpoints = {
       mediaType: {
         previews: ["scarlet-witch"]
       }
-    }],
-    listConductCodes: ["GET /codes_of_conduct", {
-      mediaType: {
-        previews: ["scarlet-witch"]
-      }
-    }, {
-      renamed: ["codesOfConduct", "getAllCodesOfConduct"]
     }]
   },
   emojis: {
@@ -25324,9 +25247,6 @@ const Endpoints = {
     listForUser: ["GET /users/{username}/gists"],
     listForks: ["GET /gists/{gist_id}/forks"],
     listPublic: ["GET /gists/public"],
-    listPublicForUser: ["GET /users/{username}/gists", {}, {
-      renamed: ["gists", "listForUser"]
-    }],
     listStarred: ["GET /gists/starred"],
     star: ["PUT /gists/{gist_id}/star"],
     unstar: ["DELETE /gists/{gist_id}/star"],
@@ -25350,26 +25270,9 @@ const Endpoints = {
   },
   gitignore: {
     getAllTemplates: ["GET /gitignore/templates"],
-    getTemplate: ["GET /gitignore/templates/{name}"],
-    listTemplates: ["GET /gitignore/templates", {}, {
-      renamed: ["gitignore", "getAllTemplates"]
-    }]
+    getTemplate: ["GET /gitignore/templates/{name}"]
   },
   interactions: {
-    addOrUpdateRestrictionsForOrg: ["PUT /orgs/{org}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
-    }, {
-      renamed: ["interactions", "setRestrictionsForOrg"]
-    }],
-    addOrUpdateRestrictionsForRepo: ["PUT /repos/{owner}/{repo}/interaction-limits", {
-      mediaType: {
-        previews: ["sombra"]
-      }
-    }, {
-      renamed: ["interactions", "setRestrictionsForRepo"]
-    }],
     getRestrictionsForOrg: ["GET /orgs/{org}/interaction-limits", {
       mediaType: {
         previews: ["sombra"]
@@ -25404,9 +25307,6 @@ const Endpoints = {
   issues: {
     addAssignees: ["POST /repos/{owner}/{repo}/issues/{issue_number}/assignees"],
     addLabels: ["POST /repos/{owner}/{repo}/issues/{issue_number}/labels"],
-    checkAssignee: ["GET /repos/{owner}/{repo}/assignees/{assignee}", {}, {
-      renamed: ["issues", "checkUserCanBeAssigned"]
-    }],
     checkUserCanBeAssigned: ["GET /repos/{owner}/{repo}/assignees/{assignee}"],
     create: ["POST /repos/{owner}/{repo}/issues"],
     createComment: ["POST /repos/{owner}/{repo}/issues/{issue_number}/comments"],
@@ -25438,22 +25338,10 @@ const Endpoints = {
     listLabelsForRepo: ["GET /repos/{owner}/{repo}/labels"],
     listLabelsOnIssue: ["GET /repos/{owner}/{repo}/issues/{issue_number}/labels"],
     listMilestones: ["GET /repos/{owner}/{repo}/milestones"],
-    listMilestonesForRepo: ["GET /repos/{owner}/{repo}/milestones", {}, {
-      renamed: ["issues", "listMilestones"]
-    }],
     lock: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/lock"],
     removeAllLabels: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels"],
     removeAssignees: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/assignees"],
     removeLabel: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels/{name}"],
-    removeLabels: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/labels", {}, {
-      renamed: ["issues", "removeAllLabels"]
-    }],
-    replaceAllLabels: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/labels", {}, {
-      renamed: ["issues", "setLabels"]
-    }],
-    replaceLabels: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/labels", {}, {
-      renamed: ["issues", "replaceAllLabels"]
-    }],
     setLabels: ["PUT /repos/{owner}/{repo}/issues/{issue_number}/labels"],
     unlock: ["DELETE /repos/{owner}/{repo}/issues/{issue_number}/lock"],
     update: ["PATCH /repos/{owner}/{repo}/issues/{issue_number}"],
@@ -25464,10 +25352,7 @@ const Endpoints = {
   licenses: {
     get: ["GET /licenses/{license}"],
     getAllCommonlyUsed: ["GET /licenses"],
-    getForRepo: ["GET /repos/{owner}/{repo}/license"],
-    listCommonlyUsed: ["GET /licenses", {}, {
-      renamed: ["licenses", "getAllCommonlyUsed"]
-    }]
+    getForRepo: ["GET /repos/{owner}/{repo}/license"]
   },
   markdown: {
     render: ["POST /markdown"],
@@ -25503,9 +25388,6 @@ const Endpoints = {
       }
     }],
     getCommitAuthors: ["GET /repos/{owner}/{repo}/import/authors"],
-    getImportProgress: ["GET /repos/{owner}/{repo}/import", {}, {
-      renamed: ["migrations", "getImportStatus"]
-    }],
     getImportStatus: ["GET /repos/{owner}/{repo}/import"],
     getLargeFiles: ["GET /repos/{owner}/{repo}/import/large_files"],
     getStatusForAuthenticatedUser: ["GET /user/migrations/{migration_id}", {
@@ -25556,39 +25438,15 @@ const Endpoints = {
     updateImport: ["PATCH /repos/{owner}/{repo}/import"]
   },
   orgs: {
-    addOrUpdateMembership: ["PUT /orgs/{org}/memberships/{username}", {}, {
-      renamed: ["orgs", "setMembershipForUser"]
-    }],
     blockUser: ["PUT /orgs/{org}/blocks/{username}"],
     checkBlockedUser: ["GET /orgs/{org}/blocks/{username}"],
-    checkMembership: ["GET /orgs/{org}/members/{username}", {}, {
-      renamed: ["orgs", "checkMembershipForUser"]
-    }],
     checkMembershipForUser: ["GET /orgs/{org}/members/{username}"],
-    checkPublicMembership: ["GET /orgs/{org}/public_members/{username}", {}, {
-      renamed: ["orgs", "checkPublicMembershipForUser"]
-    }],
     checkPublicMembershipForUser: ["GET /orgs/{org}/public_members/{username}"],
-    concealMembership: ["DELETE /orgs/{org}/public_members/{username}", {}, {
-      renamed: ["orgs", "removePublicMembershipForAuthenticatedUser"]
-    }],
     convertMemberToOutsideCollaborator: ["PUT /orgs/{org}/outside_collaborators/{username}"],
-    createHook: ["POST /orgs/{org}/hooks", {}, {
-      renamed: ["orgs", "createWebhook"]
-    }],
     createInvitation: ["POST /orgs/{org}/invitations"],
     createWebhook: ["POST /orgs/{org}/hooks"],
-    deleteHook: ["DELETE /orgs/{org}/hooks/{hook_id}", {}, {
-      renamed: ["orgs", "deleteWebhook"]
-    }],
     deleteWebhook: ["DELETE /orgs/{org}/hooks/{hook_id}"],
     get: ["GET /orgs/{org}"],
-    getHook: ["GET /orgs/{org}/hooks/{hook_id}", {}, {
-      renamed: ["orgs", "getWebhook"]
-    }],
-    getMembership: ["GET /orgs/{org}/memberships/{username}", {}, {
-      renamed: ["orgs", "getMembershipForUser"]
-    }],
     getMembershipForAuthenticatedUser: ["GET /user/memberships/orgs/{org}"],
     getMembershipForUser: ["GET /orgs/{org}/memberships/{username}"],
     getWebhook: ["GET /orgs/{org}/hooks/{hook_id}"],
@@ -25601,37 +25459,15 @@ const Endpoints = {
     listBlockedUsers: ["GET /orgs/{org}/blocks"],
     listForAuthenticatedUser: ["GET /user/orgs"],
     listForUser: ["GET /users/{username}/orgs"],
-    listHooks: ["GET /orgs/{org}/hooks", {}, {
-      renamed: ["orgs", "listWebhooks"]
-    }],
-    listInstallations: ["GET /orgs/{org}/installations", {
-      mediaType: {
-        previews: ["machine-man"]
-      }
-    }, {
-      renamed: ["orgs", "listAppInstallations"]
-    }],
     listInvitationTeams: ["GET /orgs/{org}/invitations/{invitation_id}/teams"],
     listMembers: ["GET /orgs/{org}/members"],
-    listMemberships: ["GET /user/memberships/orgs", {}, {
-      renamed: ["orgs", "listMembershipsForAuthenticatedUser"]
-    }],
     listMembershipsForAuthenticatedUser: ["GET /user/memberships/orgs"],
     listOutsideCollaborators: ["GET /orgs/{org}/outside_collaborators"],
     listPendingInvitations: ["GET /orgs/{org}/invitations"],
     listPublicMembers: ["GET /orgs/{org}/public_members"],
     listWebhooks: ["GET /orgs/{org}/hooks"],
-    pingHook: ["POST /orgs/{org}/hooks/{hook_id}/pings", {}, {
-      renamed: ["orgs", "pingWebhook"]
-    }],
     pingWebhook: ["POST /orgs/{org}/hooks/{hook_id}/pings"],
-    publicizeMembership: ["PUT /orgs/{org}/public_members/{username}", {}, {
-      renamed: ["orgs", "setPublicMembershipForAuthenticatedUser"]
-    }],
     removeMember: ["DELETE /orgs/{org}/members/{username}"],
-    removeMembership: ["DELETE /orgs/{org}/memberships/{username}", {}, {
-      renamed: ["orgs", "removeMembershipForUser"]
-    }],
     removeMembershipForUser: ["DELETE /orgs/{org}/memberships/{username}"],
     removeOutsideCollaborator: ["DELETE /orgs/{org}/outside_collaborators/{username}"],
     removePublicMembershipForAuthenticatedUser: ["DELETE /orgs/{org}/public_members/{username}"],
@@ -25639,12 +25475,6 @@ const Endpoints = {
     setPublicMembershipForAuthenticatedUser: ["PUT /orgs/{org}/public_members/{username}"],
     unblockUser: ["DELETE /orgs/{org}/blocks/{username}"],
     update: ["PATCH /orgs/{org}"],
-    updateHook: ["PATCH /orgs/{org}/hooks/{hook_id}", {}, {
-      renamed: ["orgs", "updateWebhook"]
-    }],
-    updateMembership: ["PATCH /user/memberships/orgs/{org}", {}, {
-      renamed: ["orgs", "updateMembershipForAuthenticatedUser"]
-    }],
     updateMembershipForAuthenticatedUser: ["PATCH /user/memberships/orgs/{org}"],
     updateWebhook: ["PATCH /orgs/{org}/hooks/{hook_id}"]
   },
@@ -25759,13 +25589,6 @@ const Endpoints = {
         previews: ["inertia"]
       }
     }],
-    reviewUserPermissionLevel: ["GET /projects/{project_id}/collaborators/{username}/permission", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }, {
-      renamed: ["projects", "getPermissionForUser"]
-    }],
     update: ["PATCH /projects/{project_id}", {
       mediaType: {
         previews: ["inertia"]
@@ -25785,52 +25608,22 @@ const Endpoints = {
   pulls: {
     checkIfMerged: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/merge"],
     create: ["POST /repos/{owner}/{repo}/pulls"],
-    createComment: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/comments", {}, {
-      renamed: ["pulls", "createReviewComment"]
-    }],
     createReplyForReviewComment: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies"],
     createReview: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews"],
     createReviewComment: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/comments"],
-    createReviewCommentReply: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/comments/{comment_id}/replies", {}, {
-      renamed: ["pulls", "createReplyForReviewComment"]
-    }],
-    createReviewRequest: ["POST /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", {}, {
-      renamed: ["pulls", "requestReviewers"]
-    }],
-    deleteComment: ["DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}", {}, {
-      renamed: ["pulls", "deleteReviewComment"]
-    }],
     deletePendingReview: ["DELETE /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"],
     deleteReviewComment: ["DELETE /repos/{owner}/{repo}/pulls/comments/{comment_id}"],
-    deleteReviewRequest: ["DELETE /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", {}, {
-      renamed: ["pulls", "removeRequestedReviewers"]
-    }],
     dismissReview: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/dismissals"],
     get: ["GET /repos/{owner}/{repo}/pulls/{pull_number}"],
-    getComment: ["GET /repos/{owner}/{repo}/pulls/comments/{comment_id}", {}, {
-      renamed: ["pulls", "getReviewComment"]
-    }],
-    getCommentsForReview: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments", {}, {
-      renamed: ["pulls", "listCommentsForReview"]
-    }],
     getReview: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"],
     getReviewComment: ["GET /repos/{owner}/{repo}/pulls/comments/{comment_id}"],
     list: ["GET /repos/{owner}/{repo}/pulls"],
-    listComments: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/comments", {}, {
-      renamed: ["pulls", "listReviewComments"]
-    }],
-    listCommentsForRepo: ["GET /repos/{owner}/{repo}/pulls/comments", {}, {
-      renamed: ["pulls", "listReviewCommentsForRepo"]
-    }],
     listCommentsForReview: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}/comments"],
     listCommits: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/commits"],
     listFiles: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/files"],
     listRequestedReviewers: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"],
     listReviewComments: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/comments"],
     listReviewCommentsForRepo: ["GET /repos/{owner}/{repo}/pulls/comments"],
-    listReviewRequests: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers", {}, {
-      renamed: ["pulls", "listRequestedReviewers"]
-    }],
     listReviews: ["GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews"],
     merge: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge"],
     removeRequestedReviewers: ["DELETE /repos/{owner}/{repo}/pulls/{pull_number}/requested_reviewers"],
@@ -25841,9 +25634,6 @@ const Endpoints = {
       mediaType: {
         previews: ["lydian"]
       }
-    }],
-    updateComment: ["PATCH /repos/{owner}/{repo}/pulls/comments/{comment_id}", {}, {
-      renamed: ["pulls", "updateReviewComment"]
     }],
     updateReview: ["PUT /repos/{owner}/{repo}/pulls/{pull_number}/reviews/{review_id}"],
     updateReviewComment: ["PATCH /repos/{owner}/{repo}/pulls/comments/{comment_id}"]
@@ -25882,13 +25672,6 @@ const Endpoints = {
         previews: ["squirrel-girl"]
       }
     }],
-    delete: ["DELETE /reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }, {
-      renamed: ["reactions", "deleteLegacy"]
-    }],
     deleteForCommitComment: ["DELETE /repos/{owner}/{repo}/comments/{comment_id}/reactions/{reaction_id}", {
       mediaType: {
         previews: ["squirrel-girl"]
@@ -25918,13 +25701,6 @@ const Endpoints = {
       mediaType: {
         previews: ["squirrel-girl"]
       }
-    }],
-    deleteLegacy: ["DELETE /reactions/{reaction_id}", {
-      mediaType: {
-        previews: ["squirrel-girl"]
-      }
-    }, {
-      deprecated: "octokit.reactions.deleteLegacy() is deprecated, see https://developer.github.com/v3/reactions/#delete-a-reaction-legacy"
     }],
     listForCommitComment: ["GET /repos/{owner}/{repo}/comments/{comment_id}/reactions", {
       mediaType: {
@@ -25963,35 +25739,6 @@ const Endpoints = {
       mapToData: "apps"
     }],
     addCollaborator: ["PUT /repos/{owner}/{repo}/collaborators/{username}"],
-    addDeployKey: ["POST /repos/{owner}/{repo}/keys", {}, {
-      renamed: ["repos", "createDeployKey"]
-    }],
-    addProtectedBranchAdminEnforcement: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins", {}, {
-      renamed: ["repos", "setAdminBranchProtection"]
-    }],
-    addProtectedBranchAppRestrictions: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
-      mapToData: "apps",
-      renamed: ["repos", "addAppAccessRestrictions"]
-    }],
-    addProtectedBranchRequiredSignatures: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }, {
-      renamed: ["repos", "createCommitSignatureProtection"]
-    }],
-    addProtectedBranchRequiredStatusChecksContexts: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
-      mapToData: "contexts",
-      renamed: ["repos", "addStatusCheckContexts"]
-    }],
-    addProtectedBranchTeamRestrictions: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams", {}, {
-      mapToData: "teams",
-      renamed: ["repos", "addTeamAccessRestrictions"]
-    }],
-    addProtectedBranchUserRestrictions: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users", {}, {
-      mapToData: "users",
-      renamed: ["repos", "addUserAccessRestrictions"]
-    }],
     addStatusCheckContexts: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
       mapToData: "contexts"
     }],
@@ -26021,13 +25768,7 @@ const Endpoints = {
     createDispatchEvent: ["POST /repos/{owner}/{repo}/dispatches"],
     createForAuthenticatedUser: ["POST /user/repos"],
     createFork: ["POST /repos/{owner}/{repo}/forks"],
-    createHook: ["POST /repos/{owner}/{repo}/hooks", {}, {
-      renamed: ["repos", "createWebhook"]
-    }],
     createInOrg: ["POST /orgs/{org}/repos"],
-    createOrUpdateFile: ["PUT /repos/{owner}/{repo}/contents/{path}", {}, {
-      renamed: ["repos", "createOrUpdateFileContents"]
-    }],
     createOrUpdateFileContents: ["PUT /repos/{owner}/{repo}/contents/{path}"],
     createPagesSite: ["POST /repos/{owner}/{repo}/pages", {
       mediaType: {
@@ -26035,9 +25776,6 @@ const Endpoints = {
       }
     }],
     createRelease: ["POST /repos/{owner}/{repo}/releases"],
-    createStatus: ["POST /repos/{owner}/{repo}/statuses/{sha}", {}, {
-      renamed: ["repos", "createCommitStatus"]
-    }],
     createUsingTemplate: ["POST /repos/{template_owner}/{template_repo}/generate", {
       mediaType: {
         previews: ["baptiste"]
@@ -26057,11 +25795,7 @@ const Endpoints = {
     }],
     deleteDeployKey: ["DELETE /repos/{owner}/{repo}/keys/{key_id}"],
     deleteDeployment: ["DELETE /repos/{owner}/{repo}/deployments/{deployment_id}"],
-    deleteDownload: ["DELETE /repos/{owner}/{repo}/downloads/{download_id}"],
     deleteFile: ["DELETE /repos/{owner}/{repo}/contents/{path}"],
-    deleteHook: ["DELETE /repos/{owner}/{repo}/hooks/{hook_id}", {}, {
-      renamed: ["repos", "deleteWebhook"]
-    }],
     deleteInvitation: ["DELETE /repos/{owner}/{repo}/invitations/{invitation_id}"],
     deletePagesSite: ["DELETE /repos/{owner}/{repo}/pages", {
       mediaType: {
@@ -26077,13 +25811,6 @@ const Endpoints = {
         previews: ["london"]
       }
     }],
-    disablePagesSite: ["DELETE /repos/{owner}/{repo}/pages", {
-      mediaType: {
-        previews: ["switcheroo"]
-      }
-    }, {
-      renamed: ["repos", "deletePagesSite"]
-    }],
     disableVulnerabilityAlerts: ["DELETE /repos/{owner}/{repo}/vulnerability-alerts", {
       mediaType: {
         previews: ["dorian"]
@@ -26094,13 +25821,6 @@ const Endpoints = {
       mediaType: {
         previews: ["london"]
       }
-    }],
-    enablePagesSite: ["POST /repos/{owner}/{repo}/pages", {
-      mediaType: {
-        previews: ["switcheroo"]
-      }
-    }, {
-      renamed: ["repos", "createPagesSite"]
     }],
     enableVulnerabilityAlerts: ["PUT /repos/{owner}/{repo}/vulnerability-alerts", {
       mediaType: {
@@ -26117,9 +25837,6 @@ const Endpoints = {
       }
     }],
     getAppsWithAccessToProtectedBranch: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps"],
-    getArchiveLink: ["GET /repos/{owner}/{repo}/{archive_format}/{ref}", {}, {
-      renamed: ["repos", "downloadArchive"]
-    }],
     getBranch: ["GET /repos/{owner}/{repo}/branches/{branch}"],
     getBranchProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection"],
     getClones: ["GET /repos/{owner}/{repo}/traffic/clones"],
@@ -26136,41 +25853,15 @@ const Endpoints = {
     }],
     getCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile"],
     getContent: ["GET /repos/{owner}/{repo}/contents/{path}"],
-    getContents: ["GET /repos/{owner}/{repo}/contents/{path}", {}, {
-      renamed: ["repos", "getContent"]
-    }],
     getContributorsStats: ["GET /repos/{owner}/{repo}/stats/contributors"],
     getDeployKey: ["GET /repos/{owner}/{repo}/keys/{key_id}"],
     getDeployment: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}"],
     getDeploymentStatus: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses/{status_id}"],
-    getDownload: ["GET /repos/{owner}/{repo}/downloads/{download_id}"],
-    getHook: ["GET /repos/{owner}/{repo}/hooks/{hook_id}", {}, {
-      renamed: ["repos", "getWebhook"]
-    }],
     getLatestPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/latest"],
     getLatestRelease: ["GET /repos/{owner}/{repo}/releases/latest"],
     getPages: ["GET /repos/{owner}/{repo}/pages"],
     getPagesBuild: ["GET /repos/{owner}/{repo}/pages/builds/{build_id}"],
     getParticipationStats: ["GET /repos/{owner}/{repo}/stats/participation"],
-    getProtectedBranchAdminEnforcement: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins", {}, {
-      renamed: ["repos", "getAdminBranchProtection"]
-    }],
-    getProtectedBranchPullRequestReviewEnforcement: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews", {}, {
-      renamed: ["repos", "getPullRequestReviewProtection"]
-    }],
-    getProtectedBranchRequiredSignatures: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }, {
-      renamed: ["repos", "getCommitSignatureProtection"]
-    }],
-    getProtectedBranchRequiredStatusChecks: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks", {}, {
-      renamed: ["repos", "getStatusChecksProtection"]
-    }],
-    getProtectedBranchRestrictions: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions", {}, {
-      renamed: ["repos", "getAccessRestrictions"]
-    }],
     getPullRequestReviewProtection: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     getPunchCardStats: ["GET /repos/{owner}/{repo}/stats/punch_card"],
     getReadme: ["GET /repos/{owner}/{repo}/readme"],
@@ -26184,12 +25875,6 @@ const Endpoints = {
     getUsersWithAccessToProtectedBranch: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users"],
     getViews: ["GET /repos/{owner}/{repo}/traffic/views"],
     getWebhook: ["GET /repos/{owner}/{repo}/hooks/{hook_id}"],
-    list: ["GET /user/repos", {}, {
-      renamed: ["repos", "listForAuthenticatedUser"]
-    }],
-    listAssetsForRelease: ["GET /repos/{owner}/{repo}/releases/{release_id}/assets", {}, {
-      renamed: ["repos", "listReleaseAssets"]
-    }],
     listBranches: ["GET /repos/{owner}/{repo}/branches"],
     listBranchesForHeadCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/branches-where-head", {
       mediaType: {
@@ -26198,9 +25883,6 @@ const Endpoints = {
     }],
     listCollaborators: ["GET /repos/{owner}/{repo}/collaborators"],
     listCommentsForCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/comments"],
-    listCommitComments: ["GET /repos/{owner}/{repo}/comments", {}, {
-      renamed: ["repos", "listCommitCommentsForRepo"]
-    }],
     listCommitCommentsForRepo: ["GET /repos/{owner}/{repo}/comments"],
     listCommitStatusesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/statuses"],
     listCommits: ["GET /repos/{owner}/{repo}/commits"],
@@ -26208,21 +25890,14 @@ const Endpoints = {
     listDeployKeys: ["GET /repos/{owner}/{repo}/keys"],
     listDeploymentStatuses: ["GET /repos/{owner}/{repo}/deployments/{deployment_id}/statuses"],
     listDeployments: ["GET /repos/{owner}/{repo}/deployments"],
-    listDownloads: ["GET /repos/{owner}/{repo}/downloads"],
     listForAuthenticatedUser: ["GET /user/repos"],
     listForOrg: ["GET /orgs/{org}/repos"],
     listForUser: ["GET /users/{username}/repos"],
     listForks: ["GET /repos/{owner}/{repo}/forks"],
-    listHooks: ["GET /repos/{owner}/{repo}/hooks", {}, {
-      renamed: ["repos", "listWebhooks"]
-    }],
     listInvitations: ["GET /repos/{owner}/{repo}/invitations"],
     listInvitationsForAuthenticatedUser: ["GET /user/repository_invitations"],
     listLanguages: ["GET /repos/{owner}/{repo}/languages"],
     listPagesBuilds: ["GET /repos/{owner}/{repo}/pages/builds"],
-    listProtectedBranchRequiredStatusChecksContexts: ["GET /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
-      renamed: ["repos", "getAllStatusCheckContexts"]
-    }],
     listPublic: ["GET /repositories"],
     listPullRequestsAssociatedWithCommit: ["GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls", {
       mediaType: {
@@ -26231,69 +25906,15 @@ const Endpoints = {
     }],
     listReleaseAssets: ["GET /repos/{owner}/{repo}/releases/{release_id}/assets"],
     listReleases: ["GET /repos/{owner}/{repo}/releases"],
-    listStatusesForRef: ["GET /repos/{owner}/{repo}/commits/{ref}/statuses", {}, {
-      renamed: ["repos", "listCommitStatusesForRef"]
-    }],
     listTags: ["GET /repos/{owner}/{repo}/tags"],
     listTeams: ["GET /repos/{owner}/{repo}/teams"],
-    listTopics: ["GET /repos/{owner}/{repo}/topics", {
-      mediaType: {
-        previews: ["mercy"]
-      }
-    }, {
-      renamed: ["repos", "getAllTopics"]
-    }],
     listWebhooks: ["GET /repos/{owner}/{repo}/hooks"],
     merge: ["POST /repos/{owner}/{repo}/merges"],
-    pingHook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/pings", {}, {
-      renamed: ["repos", "pingWebhook"]
-    }],
     pingWebhook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/pings"],
     removeAppAccessRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
       mapToData: "apps"
     }],
-    removeBranchProtection: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection", {}, {
-      renamed: ["repos", "deleteBranchProtection"]
-    }],
     removeCollaborator: ["DELETE /repos/{owner}/{repo}/collaborators/{username}"],
-    removeDeployKey: ["DELETE /repos/{owner}/{repo}/keys/{key_id}", {}, {
-      renamed: ["repos", "deleteDeployKey"]
-    }],
-    removeProtectedBranchAdminEnforcement: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins", {}, {
-      renamed: ["repos", "deleteAdminBranchProtection"]
-    }],
-    removeProtectedBranchAppRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
-      mapToData: "apps",
-      renamed: ["repos", "removeAppAccessRestrictions"]
-    }],
-    removeProtectedBranchPullRequestReviewEnforcement: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews", {}, {
-      renamed: ["repos", "deletePullRequestReviewProtection"]
-    }],
-    removeProtectedBranchRequiredSignatures: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures", {
-      mediaType: {
-        previews: ["zzzax"]
-      }
-    }, {
-      renamed: ["repos", "deleteCommitSignatureProtection"]
-    }],
-    removeProtectedBranchRequiredStatusChecks: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks", {}, {
-      renamed: ["repos", "removeStatusChecksProtection"]
-    }],
-    removeProtectedBranchRequiredStatusChecksContexts: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
-      mapToData: "contexts",
-      renamed: ["repos", "removeStatusCheckContexts"]
-    }],
-    removeProtectedBranchRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions", {}, {
-      renamed: ["repos", "deleteAccessRestrictions"]
-    }],
-    removeProtectedBranchTeamRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams", {}, {
-      mapToData: "teams",
-      renamed: ["repos", "removeTeamAccessRestrictions"]
-    }],
-    removeProtectedBranchUserRestrictions: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users", {}, {
-      mapToData: "users",
-      renamed: ["repos", "removeUserAccessRestrictions"]
-    }],
     removeStatusCheckContexts: ["DELETE /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
       mapToData: "contexts"
     }],
@@ -26309,36 +25930,7 @@ const Endpoints = {
         previews: ["mercy"]
       }
     }],
-    replaceProtectedBranchAppRestrictions: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
-      mapToData: "apps",
-      renamed: ["repos", "setAppAccessRestrictions"]
-    }],
-    replaceProtectedBranchRequiredStatusChecksContexts: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks/contexts", {}, {
-      mapToData: "contexts",
-      renamed: ["repos", "setStatusCheckContexts"]
-    }],
-    replaceProtectedBranchTeamRestrictions: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/teams", {}, {
-      mapToData: "teams",
-      renamed: ["repos", "setTeamAccessRestrictions"]
-    }],
-    replaceProtectedBranchUserRestrictions: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users", {}, {
-      mapToData: "users",
-      renamed: ["repos", "setUserAccessRestrictions"]
-    }],
-    replaceTopics: ["PUT /repos/{owner}/{repo}/topics", {
-      mediaType: {
-        previews: ["mercy"]
-      }
-    }, {
-      renamed: ["repos", "replaceAllTopics"]
-    }],
-    requestPageBuild: ["POST /repos/{owner}/{repo}/pages/builds", {}, {
-      renamed: ["repos", "requestPagesBuild"]
-    }],
     requestPagesBuild: ["POST /repos/{owner}/{repo}/pages/builds"],
-    retrieveCommunityProfileMetrics: ["GET /repos/{owner}/{repo}/community/profile", {}, {
-      renamed: ["repos", "getCommunityProfileMetrics"]
-    }],
     setAdminBranchProtection: ["POST /repos/{owner}/{repo}/branches/{branch}/protection/enforce_admins"],
     setAppAccessRestrictions: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/apps", {}, {
       mapToData: "apps"
@@ -26352,25 +25944,13 @@ const Endpoints = {
     setUserAccessRestrictions: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection/restrictions/users", {}, {
       mapToData: "users"
     }],
-    testPushHook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/tests", {}, {
-      renamed: ["repos", "testPushWebhook"]
-    }],
     testPushWebhook: ["POST /repos/{owner}/{repo}/hooks/{hook_id}/tests"],
     transfer: ["POST /repos/{owner}/{repo}/transfer"],
     update: ["PATCH /repos/{owner}/{repo}"],
     updateBranchProtection: ["PUT /repos/{owner}/{repo}/branches/{branch}/protection"],
     updateCommitComment: ["PATCH /repos/{owner}/{repo}/comments/{comment_id}"],
-    updateHook: ["PATCH /repos/{owner}/{repo}/hooks/{hook_id}", {}, {
-      renamed: ["repos", "updateWebhook"]
-    }],
     updateInformationAboutPagesSite: ["PUT /repos/{owner}/{repo}/pages"],
     updateInvitation: ["PATCH /repos/{owner}/{repo}/invitations/{invitation_id}"],
-    updateProtectedBranchPullRequestReviewEnforcement: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews", {}, {
-      renamed: ["repos", "updatePullRequestReviewProtection"]
-    }],
-    updateProtectedBranchRequiredStatusChecks: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_status_checks", {}, {
-      renamed: ["repos", "updateStatusChecksProtection"]
-    }],
     updatePullRequestReviewProtection: ["PATCH /repos/{owner}/{repo}/branches/{branch}/protection/required_pull_request_reviews"],
     updateRelease: ["PATCH /repos/{owner}/{repo}/releases/{release_id}"],
     updateReleaseAsset: ["PATCH /repos/{owner}/{repo}/releases/assets/{asset_id}"],
@@ -26395,28 +25975,12 @@ const Endpoints = {
   },
   teams: {
     addOrUpdateMembershipForUserInOrg: ["PUT /orgs/{org}/teams/{team_slug}/memberships/{username}"],
-    addOrUpdateMembershipInOrg: ["PUT /orgs/{org}/teams/{team_slug}/memberships/{username}", {}, {
-      renamed: ["teams", "addOrUpdateMembershipForUserInOrg"]
-    }],
-    addOrUpdateProjectInOrg: ["PUT /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }, {
-      renamed: ["teams", "addOrUpdateProjectPermissionsInOrg"]
-    }],
     addOrUpdateProjectPermissionsInOrg: ["PUT /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
       mediaType: {
         previews: ["inertia"]
       }
     }],
-    addOrUpdateRepoInOrg: ["PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}", {}, {
-      renamed: ["teams", "addOrUpdateRepoPermissionsInOrg"]
-    }],
     addOrUpdateRepoPermissionsInOrg: ["PUT /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"],
-    checkManagesRepoInOrg: ["GET /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}", {}, {
-      renamed: ["teams", "checkPermissionsForRepoInOrg"]
-    }],
     checkPermissionsForProjectInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
       mediaType: {
         previews: ["inertia"]
@@ -26433,9 +25997,6 @@ const Endpoints = {
     getDiscussionCommentInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}"],
     getDiscussionInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}"],
     getMembershipForUserInOrg: ["GET /orgs/{org}/teams/{team_slug}/memberships/{username}"],
-    getMembershipInOrg: ["GET /orgs/{org}/teams/{team_slug}/memberships/{username}", {}, {
-      renamed: ["teams", "getMembershipForUserInOrg"]
-    }],
     list: ["GET /orgs/{org}/teams"],
     listChildInOrg: ["GET /orgs/{org}/teams/{team_slug}/teams"],
     listDiscussionCommentsInOrg: ["GET /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments"],
@@ -26450,107 +26011,49 @@ const Endpoints = {
     }],
     listReposInOrg: ["GET /orgs/{org}/teams/{team_slug}/repos"],
     removeMembershipForUserInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}"],
-    removeMembershipInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/memberships/{username}", {}, {
-      renamed: ["teams", "removeMembershipForUserInOrg"]
-    }],
     removeProjectInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/projects/{project_id}"],
     removeRepoInOrg: ["DELETE /orgs/{org}/teams/{team_slug}/repos/{owner}/{repo}"],
-    reviewProjectInOrg: ["GET /orgs/{org}/teams/{team_slug}/projects/{project_id}", {
-      mediaType: {
-        previews: ["inertia"]
-      }
-    }, {
-      renamed: ["teams", "checkPermissionsForProjectInOrg"]
-    }],
     updateDiscussionCommentInOrg: ["PATCH /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}/comments/{comment_number}"],
     updateDiscussionInOrg: ["PATCH /orgs/{org}/teams/{team_slug}/discussions/{discussion_number}"],
     updateInOrg: ["PATCH /orgs/{org}/teams/{team_slug}"]
   },
   users: {
     addEmailForAuthenticated: ["POST /user/emails"],
-    addEmails: ["POST /user/emails", {}, {
-      renamed: ["users", "addEmailsForAuthenticated"]
-    }],
     block: ["PUT /user/blocks/{username}"],
     checkBlocked: ["GET /user/blocks/{username}"],
-    checkFollowing: ["GET /user/following/{username}", {}, {
-      renamed: ["users", "checkPersonIsFollowedByAuthenticated"]
-    }],
     checkFollowingForUser: ["GET /users/{username}/following/{target_user}"],
     checkPersonIsFollowedByAuthenticated: ["GET /user/following/{username}"],
-    createGpgKey: ["POST /user/gpg_keys", {}, {
-      renamed: ["users", "createGpgKeyForAuthenticated"]
-    }],
     createGpgKeyForAuthenticated: ["POST /user/gpg_keys"],
-    createPublicKey: ["POST /user/keys", {}, {
-      renamed: ["users", "createPublicSshKeyForAuthenticated"]
-    }],
     createPublicSshKeyForAuthenticated: ["POST /user/keys"],
     deleteEmailForAuthenticated: ["DELETE /user/emails"],
-    deleteEmails: ["DELETE /user/emails", {}, {
-      renamed: ["users", "deleteEmailsForAuthenticated"]
-    }],
-    deleteGpgKey: ["DELETE /user/gpg_keys/{gpg_key_id}", {}, {
-      renamed: ["users", "deleteGpgKeyForAuthenticated"]
-    }],
     deleteGpgKeyForAuthenticated: ["DELETE /user/gpg_keys/{gpg_key_id}"],
-    deletePublicKey: ["DELETE /user/keys/{key_id}", {}, {
-      renamed: ["users", "deletePublicSshKeyForAuthenticated"]
-    }],
     deletePublicSshKeyForAuthenticated: ["DELETE /user/keys/{key_id}"],
     follow: ["PUT /user/following/{username}"],
     getAuthenticated: ["GET /user"],
     getByUsername: ["GET /users/{username}"],
     getContextForUser: ["GET /users/{username}/hovercard"],
-    getGpgKey: ["GET /user/gpg_keys/{gpg_key_id}", {}, {
-      renamed: ["users", "getGpgKeyForAuthenticated"]
-    }],
     getGpgKeyForAuthenticated: ["GET /user/gpg_keys/{gpg_key_id}"],
-    getPublicKey: ["GET /user/keys/{key_id}", {}, {
-      renamed: ["users", "getPublicSshKeyForAuthenticated"]
-    }],
     getPublicSshKeyForAuthenticated: ["GET /user/keys/{key_id}"],
     list: ["GET /users"],
-    listBlocked: ["GET /user/blocks", {}, {
-      renamed: ["users", "listBlockedByAuthenticated"]
-    }],
     listBlockedByAuthenticated: ["GET /user/blocks"],
-    listEmails: ["GET /user/emails", {}, {
-      renamed: ["users", "listEmailsForAuthenticated"]
-    }],
     listEmailsForAuthenticated: ["GET /user/emails"],
     listFollowedByAuthenticated: ["GET /user/following"],
     listFollowersForAuthenticatedUser: ["GET /user/followers"],
     listFollowersForUser: ["GET /users/{username}/followers"],
-    listFollowingForAuthenticatedUser: ["GET /user/following", {}, {
-      renamed: ["users", "listFollowedByAuthenticated"]
-    }],
     listFollowingForUser: ["GET /users/{username}/following"],
-    listGpgKeys: ["GET /user/gpg_keys", {}, {
-      renamed: ["users", "listGpgKeysForAuthenticated"]
-    }],
     listGpgKeysForAuthenticated: ["GET /user/gpg_keys"],
     listGpgKeysForUser: ["GET /users/{username}/gpg_keys"],
-    listPublicEmails: ["GET /user/public_emails", {}, {
-      renamed: ["users", "listPublicEmailsForAuthenticatedUser"]
-    }],
     listPublicEmailsForAuthenticated: ["GET /user/public_emails"],
-    listPublicKeys: ["GET /user/keys", {}, {
-      renamed: ["users", "listPublicSshKeysForAuthenticated"]
-    }],
     listPublicKeysForUser: ["GET /users/{username}/keys"],
     listPublicSshKeysForAuthenticated: ["GET /user/keys"],
     setPrimaryEmailVisibilityForAuthenticated: ["PATCH /user/email/visibility"],
-    togglePrimaryEmailVisibility: ["PATCH /user/email/visibility", {}, {
-      renamed: ["users", "setPrimaryEmailVisibilityForAuthenticated"]
-    }],
     unblock: ["DELETE /user/blocks/{username}"],
     unfollow: ["DELETE /user/following/{username}"],
     updateAuthenticated: ["PATCH /user"]
   }
 };
 
-const VERSION = "3.17.0";
+const VERSION = "4.0.0";
 
 function endpointsToMethods(octokit, endpointsMap) {
   const newMethods = {};
@@ -26584,6 +26087,7 @@ function endpointsToMethods(octokit, endpointsMap) {
 
 function decorate(octokit, scope, methodName, defaults, decorations) {
   const requestWithDefaults = octokit.request.defaults(defaults);
+  /* istanbul ignore next */
 
   function withDecorations(...args) {
     // @ts-ignore https://github.com/microsoft/TypeScript/issues/25488
@@ -26595,9 +26099,7 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
         [decorations.mapToData]: undefined
       });
       return requestWithDefaults(options);
-    } // NOTE: there are currently no deprecations. But we keep the code
-    //       below for future reference
-
+    }
 
     if (decorations.renamed) {
       const [newScope, newMethodName] = decorations.renamed;
@@ -26613,10 +26115,6 @@ function decorate(octokit, scope, methodName, defaults, decorations) {
       const options = requestWithDefaults.endpoint.merge(...args);
 
       for (const [name, alias] of Object.entries(decorations.renamedParameters)) {
-        // There is currently no deprecated parameter that is optional,
-        // so we never hit the else branch below at this point.
-
-        /* istanbul ignore else */
         if (name in options) {
           octokit.log.warn(`"${name}" parameter is deprecated for "octokit.${scope}.${methodName}()". Use "${alias}" instead`);
 
@@ -26850,28 +26348,7 @@ function dispatchNext(subscriber) {
 //# sourceMappingURL=debounceTime.js.map
 
 /***/ }),
-/* 851 */
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-async function last(source, predicate = async () => true) {
-    let i = 0;
-    let result;
-    for await (const item of source) {
-        if (await predicate(item, i++)) {
-            result = item;
-        }
-    }
-    return result;
-}
-exports.last = last;
-
-//# sourceMappingURL=last.js.map
-
-
-/***/ }),
+/* 851 */,
 /* 852 */,
 /* 853 */,
 /* 854 */,
@@ -26910,8 +26387,8 @@ function combineLatest() {
     for (var _i = 0; _i < arguments.length; _i++) {
         observables[_i] = arguments[_i];
     }
-    var resultSelector = null;
-    var scheduler = null;
+    var resultSelector = undefined;
+    var scheduler = undefined;
     if (isScheduler_1.isScheduler(observables[observables.length - 1])) {
         scheduler = observables.pop();
     }
@@ -26959,7 +26436,7 @@ var CombineLatestSubscriber = (function (_super) {
             this.toRespond = len;
             for (var i = 0; i < len; i++) {
                 var observable = observables[i];
-                this.add(subscribeToResult_1.subscribeToResult(this, observable, observable, i));
+                this.add(subscribeToResult_1.subscribeToResult(this, observable, undefined, i));
             }
         }
     };
@@ -26968,7 +26445,7 @@ var CombineLatestSubscriber = (function (_super) {
             this.destination.complete();
         }
     };
-    CombineLatestSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    CombineLatestSubscriber.prototype.notifyNext = function (_outerValue, innerValue, outerIndex) {
         var values = this.values;
         var oldVal = values[outerIndex];
         var toRespond = !this.toRespond
@@ -27016,38 +26493,7 @@ exports.hostReportError = hostReportError;
 //# sourceMappingURL=hostReportError.js.map
 
 /***/ }),
-/* 864 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const iterablex_1 = __webpack_require__(954);
-class ReverseIterable extends iterablex_1.IterableX {
-    constructor(source) {
-        super();
-        this._source = source;
-    }
-    *[Symbol.iterator]() {
-        const results = [];
-        for (const item of this._source) {
-            results.unshift(item);
-        }
-        yield* results;
-    }
-}
-exports.ReverseIterable = ReverseIterable;
-function reverse() {
-    return function reverseOperatorFunction(source) {
-        return new ReverseIterable(source);
-    };
-}
-exports.reverse = reverse;
-
-//# sourceMappingURL=reverse.js.map
-
-
-/***/ }),
+/* 864 */,
 /* 865 */,
 /* 866 */
 /***/ (function(module) {
@@ -27093,26 +26539,20 @@ module.exports = intersects
 /* 873 */
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 const neq = (a, b, loose) => compare(a, b, loose) !== 0
 module.exports = neq
 
 
 /***/ }),
 /* 874 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(module, __unusedexports, __webpack_require__) {
 
-"use strict";
+const SemVer = __webpack_require__(65)
+const compare = (a, b, loose) =>
+  new SemVer(a, loose).compare(new SemVer(b, loose))
 
-Object.defineProperty(exports, "__esModule", { value: true });
-const defer_1 = __webpack_require__(382);
-const empty_1 = __webpack_require__(349);
-function iif(fn, thenSource, elseSource = empty_1.empty()) {
-    return defer_1.defer(async () => ((await fn()) ? thenSource : elseSource));
-}
-exports.iif = iif;
-
-//# sourceMappingURL=iif.js.map
+module.exports = compare
 
 
 /***/ }),
@@ -27123,8 +26563,18 @@ exports.iif = iif;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.retry = void 0;
 const repeatvalue_1 = __webpack_require__(832);
 const catcherror_1 = __webpack_require__(893);
+/**
+ * Retries the iterable instance the number of given times. If not supplied, it will try infinitely.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} [count=-1] An optional number of times to retry, otherwise is set to infinite retries
+ * @returns {MonoTypeOperatorAsyncFunction<TSource>} An iterable sequence producing the elements of the
+ * given sequence repeatedly until it terminates successfully.
+ */
 function retry(count = -1) {
     return function retryOperatorFunction(source) {
         return catcherror_1.catchAll(repeatvalue_1.repeatValue(source, count));
@@ -27143,7 +26593,7 @@ exports.retry = retry;
 // that includes the same versions that the original range does
 // If the original range is shorter than the simplified one, return that.
 const satisfies = __webpack_require__(310)
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 module.exports = (versions, range, options) => {
   const set = []
   let min = null
@@ -27193,6 +26643,7 @@ module.exports = (versions, range, options) => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.groupJoin = exports.GroupJoinIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const _grouping_1 = __webpack_require__(311);
 const empty_1 = __webpack_require__(639);
@@ -27210,14 +26661,30 @@ class GroupJoinIterable extends iterablex_1.IterableX {
         const map = _grouping_1.createGrouping(this._inner, this._innerSelector, identity_1.identity);
         for (const outerElement of this._outer) {
             const outerKey = this._outerSelector(outerElement);
-            const innerElements = map.has(outerKey)
-                ? map.get(outerKey)
-                : empty_1.empty();
+            const innerElements = map.has(outerKey) ? map.get(outerKey) : empty_1.empty();
             yield this._resultSelector(outerElement, innerElements);
         }
     }
 }
 exports.GroupJoinIterable = GroupJoinIterable;
+/**
+ * Correlates the elements of two iterable sequences based on equality of keys and groups the results.
+ *
+ * @export
+ * @template TOuter The type of the elements of the first iterable sequence.
+ * @template TInner The type of the elements of the second iterable sequence.
+ * @template TKey The type of the keys returned by the key selector functions.
+ * @template TResult The type of the result elements.
+ * @param {Iterable<TInner>} inner The async-enumerable sequence to join to the first sequence.
+ * @param {((value: TOuter) => TKey)} outerSelector A function to extract the join key from each
+ * element of the first sequence.
+ * @param {((value: TInner) => TKey)} innerSelector A function to extract the join key from each
+ * element of the second sequence.
+ * @param {((outer: TOuter, inner: Iterable<TInner>) => TResult)} resultSelector A function to create a result
+ * element from an element from the first sequence and a collection of matching elements from the second sequence.
+ * @returns {OperatorFunction<TOuter, TResult>} An operator that returns an iterable sequence that contains the result elements
+ * that are obtained by performing a grouped join on two sequences.
+ */
 function groupJoin(inner, outerSelector, innerSelector, resultSelector) {
     return function groupJoinOperatorFunction(outer) {
         return new GroupJoinIterable(outer, inner, outerSelector, innerSelector, resultSelector);
@@ -27590,23 +27057,51 @@ exports.UnsubscriptionError = UnsubscriptionErrorImpl;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const comparer_1 = __webpack_require__(492);
-async function includes(source, searchElement, fromIndex = 0) {
-    let fromIdx = fromIndex;
-    let i = 0;
-    if (Math.abs(fromIdx)) {
-        fromIdx = 0;
+exports.slice = exports.SliceIterable = void 0;
+const iterablex_1 = __webpack_require__(954);
+class SliceIterable extends iterablex_1.IterableX {
+    constructor(source, begin, end) {
+        super();
+        this._source = source;
+        this._begin = begin;
+        this._end = end;
     }
-    for await (const item of source) {
-        if (i++ > fromIdx && comparer_1.comparer(item, searchElement)) {
-            return true;
+    *[Symbol.iterator]() {
+        const it = this._source[Symbol.iterator]();
+        let begin = this._begin;
+        let next;
+        while (begin > 0 && !(next = it.next()).done) {
+            begin--;
+        }
+        let end = this._end;
+        if (end > 0) {
+            while (!(next = it.next()).done) {
+                yield next.value;
+                if (--end === 0) {
+                    break;
+                }
+            }
         }
     }
-    return false;
 }
-exports.includes = includes;
+exports.SliceIterable = SliceIterable;
+/**
+ * Returns the elements from the source iterable sequence only after the function that returns a promise produces an element.
+ *
+ * @export
+ * @template TSource The type of elements in the source sequence.
+ * @param {number} begin Zero-based index at which to begin extraction.
+ * @param {number} [end=Infinity] Zero-based index before which to end extraction.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable containing the extracted elements.
+ */
+function slice(begin, end = Infinity) {
+    return function sliceOperatorFunction(source) {
+        return new SliceIterable(source, begin, end);
+    };
+}
+exports.slice = slice;
 
-//# sourceMappingURL=includes.js.map
+//# sourceMappingURL=slice.js.map
 
 
 /***/ }),
@@ -27618,6 +27113,7 @@ exports.includes = includes;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.catchError = exports.catchAll = exports.CatchIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 const returniterator_1 = __webpack_require__(764);
 class CatchIterable extends iterablex_1.IterableX {
@@ -27771,7 +27267,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 var request = __webpack_require__(753);
 var universalUserAgent = __webpack_require__(796);
 
-const VERSION = "4.5.0";
+const VERSION = "4.5.1";
 
 class GraphqlError extends Error {
   constructor(request, response) {
@@ -27858,18 +27354,33 @@ exports.withCustomRequest = withCustomRequest;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.publish = void 0;
 const _refcountlist_1 = __webpack_require__(241);
 const create_1 = __webpack_require__(414);
 const memoize_1 = __webpack_require__(74);
+const aborterror_1 = __webpack_require__(792);
 class PublishedAsyncBuffer extends memoize_1.MemoizeAsyncBuffer {
     constructor(source) {
         super(source, new _refcountlist_1.RefCountList(0));
     }
-    [Symbol.asyncIterator]() {
+    [Symbol.asyncIterator](signal) {
+        aborterror_1.throwIfAborted(signal);
         this._buffer.readerCount++;
         return this._getIterable(this._buffer.count)[Symbol.asyncIterator]();
     }
 }
+/**
+ * Buffer enabling each iterator to retrieve elements from the shared source sequence, starting from the
+ * index at the point of obtaining the iterator.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @template TResult Result sequence element type.
+ * @param {(value: AsyncIterable<TSource>) => AsyncIterable<TResult>} [selector] Selector function with published
+ * access to the source sequence for each iterator.
+ * @returns {(OperatorAsyncFunction<TSource, TSource | TResult>)} Sequence resulting from applying the selector function to the
+ * published view over the source sequence.
+ */
 function publish(selector) {
     return function publishOperatorFunction(source) {
         return selector
@@ -27900,8 +27411,16 @@ module.exports = gtr
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.OfIterable = exports.of = void 0;
 const iterablex_1 = __webpack_require__(954);
-/** @nocollapse */
+/**
+ * Creates an iterable from the specified elements.
+ *
+ * @export
+ * @template TSource The type of the elements to create an iterable sequence.
+ * @param {...TSource[]} args The elements to turn into an iterable sequence.
+ * @returns {IterableX<TSource>} The iterable sequence created from the elements.
+ */
 function of(...args) {
     return new OfIterable(args);
 }
@@ -27927,6 +27446,7 @@ exports.OfIterable = OfIterable;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.toObserver = void 0;
 const isiterable_1 = __webpack_require__(35);
 const noop = (_) => {
     /**/
@@ -28175,24 +27695,7 @@ module.exports = function (str) {
 /* 911 */,
 /* 912 */,
 /* 913 */,
-/* 914 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const _extremaby_1 = __webpack_require__(817);
-function minBy(keySelector, comparer = _extremaby_1.defaultCompare) {
-    return function minByOperatorFunction(source) {
-        return _extremaby_1.extremaBy(source, keySelector, (key, minValue) => -comparer(key, minValue));
-    };
-}
-exports.minBy = minBy;
-
-//# sourceMappingURL=minby.js.map
-
-
-/***/ }),
+/* 914 */,
 /* 915 */,
 /* 916 */,
 /* 917 */
@@ -28228,8 +27731,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var Subscription_1 = __webpack_require__(312);
-var OuterSubscriber_1 = __webpack_require__(178);
-var subscribeToResult_1 = __webpack_require__(591);
+var innerSubscribe_1 = __webpack_require__(938);
 function bufferWhen(closingSelector) {
     return function (source) {
         return source.lift(new BufferWhenOperator(closingSelector));
@@ -28265,10 +27767,10 @@ var BufferWhenSubscriber = (function (_super) {
         _super.prototype._complete.call(this);
     };
     BufferWhenSubscriber.prototype._unsubscribe = function () {
-        this.buffer = null;
+        this.buffer = undefined;
         this.subscribing = false;
     };
-    BufferWhenSubscriber.prototype.notifyNext = function (outerValue, innerValue, outerIndex, innerIndex, innerSub) {
+    BufferWhenSubscriber.prototype.notifyNext = function () {
         this.openBuffer();
     };
     BufferWhenSubscriber.prototype.notifyComplete = function () {
@@ -28302,11 +27804,11 @@ var BufferWhenSubscriber = (function (_super) {
         this.closingSubscription = closingSubscription;
         this.add(closingSubscription);
         this.subscribing = true;
-        closingSubscription.add(subscribeToResult_1.subscribeToResult(this, closingNotifier));
+        closingSubscription.add(innerSubscribe_1.innerSubscribe(closingNotifier, new innerSubscribe_1.SimpleInnerSubscriber(this)));
         this.subscribing = false;
     };
     return BufferWhenSubscriber;
-}(OuterSubscriber_1.OuterSubscriber));
+}(innerSubscribe_1.SimpleOuterSubscriber));
 //# sourceMappingURL=bufferWhen.js.map
 
 /***/ }),
@@ -28330,6 +27832,7 @@ exports.concatAll = concatAll;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.onErrorResumeNext = exports.OnErrorResumeNextIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class OnErrorResumeNextIterable extends iterablex_1.IterableX {
     constructor(source) {
@@ -28356,14 +27859,18 @@ class OnErrorResumeNextIterable extends iterablex_1.IterableX {
     }
 }
 exports.OnErrorResumeNextIterable = OnErrorResumeNextIterable;
-function onErrorResumeNext(source, ...args) {
-    return new OnErrorResumeNextIterable([source, ...args]);
-}
-exports.onErrorResumeNext = onErrorResumeNext;
-function onErrorResumeNextStatic(...source) {
+/**
+ * Concatenates all of the specified iterable sequences, even if the previous iterable sequence terminated exceptionally.
+ *
+ * @export
+ * @template T The type of the elements in the source sequences.
+ * @param {...Iterable<T>[]} args iterable sequences to concatenate.
+ * @returns {IterableX<T>} An iterable sequence that concatenates the source sequences, even if a sequence terminates exceptionally.
+ */
+function onErrorResumeNext(...source) {
     return new OnErrorResumeNextIterable(source);
 }
-exports.onErrorResumeNextStatic = onErrorResumeNextStatic;
+exports.onErrorResumeNext = onErrorResumeNext;
 
 //# sourceMappingURL=onerrorresumenext.js.map
 
@@ -28391,12 +27898,12 @@ module.exports = {
   minor: __webpack_require__(803),
   patch: __webpack_require__(677),
   prerelease: __webpack_require__(215),
-  compare: __webpack_require__(92),
+  compare: __webpack_require__(874),
   rcompare: __webpack_require__(630),
   compareLoose: __webpack_require__(3),
   compareBuild: __webpack_require__(212),
   sort: __webpack_require__(721),
-  rsort: __webpack_require__(464),
+  rsort: __webpack_require__(593),
   gt: __webpack_require__(451),
   lt: __webpack_require__(367),
   eq: __webpack_require__(298),
@@ -28430,24 +27937,22 @@ module.exports = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.average = void 0;
 const identity_1 = __webpack_require__(296);
 /**
- * Computes the average of a sequence of values from the sequence either from the sequence itself
- * or from the selector function.
- * @example
- * // Using non chained version
- * const result = average([1, 2, 3]);
- * const result = Ix.Iterable.of(1, 2, 3).average();
- * console.log(result);
- * @param {Iterable<any>} source A sequence of values to calculate the average of.
- * @param {function(x: any): number} [selector] A transform function to apply to each element.
- * @returns {number} The average of the sequence of values.
+ * Computes the average of the iterable sequence.
+ *
+ * @export
+ * @param {Iterable<any>} source The source iterable sequence to compute the average.
+ * @param {MathOptions<any>} [options] The options for calculating the average.
+ * @returns {number} The computed average for the iterable sequence.
  */
-function average(source, selector = identity_1.identity) {
+function average(source, options) {
+    const { ['selector']: selector = identity_1.identity, ['thisArg']: thisArg } = options || {};
     let sum = 0;
     let count = 0;
     for (const item of source) {
-        sum += selector(item);
+        sum += selector.call(thisArg, item);
         count++;
     }
     if (count === 0) {
@@ -28469,6 +27974,7 @@ exports.average = average;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.pluck = void 0;
 const map_1 = __webpack_require__(76);
 function plucker(props, length) {
     const mapper = (x) => {
@@ -28486,6 +27992,15 @@ function plucker(props, length) {
     };
     return mapper;
 }
+/**
+ * Maps each source value to its specified nested property.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @template TResult The type of the elements in the result sequence, obtained by the property names.
+ * @param {...string[]} args The nested properties to pluck from each source value.
+ * @returns {OperatorAsyncFunction<TSource, TResult>} An iterable of property values from the source values.
+ */
 function pluck(...args) {
     return function pluckOperatorFunction(source) {
         return new map_1.MapIterable(source, plucker(args, args.length));
@@ -28503,6 +28018,15 @@ exports.pluck = pluck;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isEmpty = void 0;
+/**
+ * Determines whether the given async-iterable is empty.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @param {Iterable<T>} source The source async-iterable to determine whether it is empty.
+ * @returns {boolean} Returns true if the sequence is empty, otherwise false.
+ */
 function isEmpty(source) {
     for (const _ of source) {
         return false;
@@ -28561,13 +28085,17 @@ exports.ReplaySubject = ReplaySubject_1.ReplaySubject;
 var AsyncSubject_1 = __webpack_require__(48);
 exports.AsyncSubject = AsyncSubject_1.AsyncSubject;
 var asap_1 = __webpack_require__(149);
-exports.asapScheduler = asap_1.asap;
+exports.asap = asap_1.asap;
+exports.asapScheduler = asap_1.asapScheduler;
 var async_1 = __webpack_require__(411);
-exports.asyncScheduler = async_1.async;
+exports.async = async_1.async;
+exports.asyncScheduler = async_1.asyncScheduler;
 var queue_1 = __webpack_require__(831);
-exports.queueScheduler = queue_1.queue;
+exports.queue = queue_1.queue;
+exports.queueScheduler = queue_1.queueScheduler;
 var animationFrame_1 = __webpack_require__(231);
-exports.animationFrameScheduler = animationFrame_1.animationFrame;
+exports.animationFrame = animationFrame_1.animationFrame;
+exports.animationFrameScheduler = animationFrame_1.animationFrameScheduler;
 var VirtualTimeScheduler_1 = __webpack_require__(615);
 exports.VirtualTimeScheduler = VirtualTimeScheduler_1.VirtualTimeScheduler;
 exports.VirtualAction = VirtualTimeScheduler_1.VirtualAction;
@@ -28660,13 +28188,41 @@ exports.config = config_1.config;
 
 /***/ }),
 /* 932 */,
-/* 933 */,
+/* 933 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.concatWith = void 0;
+const concat_1 = __webpack_require__(805);
+/**
+ * Concatenates all iterable sequences in the given sequences, as long as the previous iterable
+ * sequence terminated successfully.
+ *
+ * @export
+ * @template T The type of the elements in the sequences.
+ * @param {...Iterable<T>[]} args The iterable sources.
+ * @returns {AsyncIterableX<T>} An iterable sequence that contains the elements of each given sequence, in sequential order.
+ */
+function concatWith(...args) {
+    return function concatWithOperatorFunction(source) {
+        return new concat_1.ConcatIterable([source, ...args]);
+    };
+}
+exports.concatWith = concatWith;
+
+//# sourceMappingURL=concatwith.js.map
+
+
+/***/ }),
 /* 934 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.takeLast = exports.TakeLastIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class TakeLastIterable extends iterablex_1.IterableX {
     constructor(source, count) {
@@ -28690,6 +28246,15 @@ class TakeLastIterable extends iterablex_1.IterableX {
     }
 }
 exports.TakeLastIterable = TakeLastIterable;
+/**
+ * Returns a specified number of contiguous elements from the end of an iterable sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @param {number} count Number of elements to take from the end of the source sequence.
+ * @returns {MonoTypeOperatorFunction<TSource>} An iterable sequence containing the specified
+ * number of elements from the end of the source sequence.
+ */
 function takeLast(count) {
     return function takeLastOperatorFunction(source) {
         return new TakeLastIterable(source, count);
@@ -28764,29 +28329,121 @@ exports.concatMap = concatMap;
 
 /***/ }),
 /* 937 */,
-/* 938 */,
-/* 939 */,
-/* 940 */
-/***/ (function(__unusedmodule, exports) {
+/* 938 */
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
-Object.defineProperty(exports, "__esModule", { value: true });
-async function count(source, fn = async () => true) {
-    let i = 0;
-    for await (const item of source) {
-        if (await fn(item)) {
-            i++;
-        }
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
     }
-    return i;
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var Subscriber_1 = __webpack_require__(114);
+var Observable_1 = __webpack_require__(33);
+var subscribeTo_1 = __webpack_require__(568);
+var SimpleInnerSubscriber = (function (_super) {
+    __extends(SimpleInnerSubscriber, _super);
+    function SimpleInnerSubscriber(parent) {
+        var _this = _super.call(this) || this;
+        _this.parent = parent;
+        return _this;
+    }
+    SimpleInnerSubscriber.prototype._next = function (value) {
+        this.parent.notifyNext(value);
+    };
+    SimpleInnerSubscriber.prototype._error = function (error) {
+        this.parent.notifyError(error);
+        this.unsubscribe();
+    };
+    SimpleInnerSubscriber.prototype._complete = function () {
+        this.parent.notifyComplete();
+        this.unsubscribe();
+    };
+    return SimpleInnerSubscriber;
+}(Subscriber_1.Subscriber));
+exports.SimpleInnerSubscriber = SimpleInnerSubscriber;
+var ComplexInnerSubscriber = (function (_super) {
+    __extends(ComplexInnerSubscriber, _super);
+    function ComplexInnerSubscriber(parent, outerValue, outerIndex) {
+        var _this = _super.call(this) || this;
+        _this.parent = parent;
+        _this.outerValue = outerValue;
+        _this.outerIndex = outerIndex;
+        return _this;
+    }
+    ComplexInnerSubscriber.prototype._next = function (value) {
+        this.parent.notifyNext(this.outerValue, value, this.outerIndex, this);
+    };
+    ComplexInnerSubscriber.prototype._error = function (error) {
+        this.parent.notifyError(error);
+        this.unsubscribe();
+    };
+    ComplexInnerSubscriber.prototype._complete = function () {
+        this.parent.notifyComplete(this);
+        this.unsubscribe();
+    };
+    return ComplexInnerSubscriber;
+}(Subscriber_1.Subscriber));
+exports.ComplexInnerSubscriber = ComplexInnerSubscriber;
+var SimpleOuterSubscriber = (function (_super) {
+    __extends(SimpleOuterSubscriber, _super);
+    function SimpleOuterSubscriber() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    SimpleOuterSubscriber.prototype.notifyNext = function (innerValue) {
+        this.destination.next(innerValue);
+    };
+    SimpleOuterSubscriber.prototype.notifyError = function (err) {
+        this.destination.error(err);
+    };
+    SimpleOuterSubscriber.prototype.notifyComplete = function () {
+        this.destination.complete();
+    };
+    return SimpleOuterSubscriber;
+}(Subscriber_1.Subscriber));
+exports.SimpleOuterSubscriber = SimpleOuterSubscriber;
+var ComplexOuterSubscriber = (function (_super) {
+    __extends(ComplexOuterSubscriber, _super);
+    function ComplexOuterSubscriber() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    ComplexOuterSubscriber.prototype.notifyNext = function (_outerValue, innerValue, _outerIndex, _innerSub) {
+        this.destination.next(innerValue);
+    };
+    ComplexOuterSubscriber.prototype.notifyError = function (error) {
+        this.destination.error(error);
+    };
+    ComplexOuterSubscriber.prototype.notifyComplete = function (_innerSub) {
+        this.destination.complete();
+    };
+    return ComplexOuterSubscriber;
+}(Subscriber_1.Subscriber));
+exports.ComplexOuterSubscriber = ComplexOuterSubscriber;
+function innerSubscribe(result, innerSubscriber) {
+    if (innerSubscriber.closed) {
+        return undefined;
+    }
+    if (result instanceof Observable_1.Observable) {
+        return result.subscribe(innerSubscriber);
+    }
+    return subscribeTo_1.subscribeTo(result)(innerSubscriber);
 }
-exports.count = count;
-
-//# sourceMappingURL=count.js.map
-
+exports.innerSubscribe = innerSubscribe;
+//# sourceMappingURL=innerSubscribe.js.map
 
 /***/ }),
+/* 939 */,
+/* 940 */,
 /* 941 */,
 /* 942 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -28825,8 +28482,20 @@ exports.scheduleArray = scheduleArray;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.iif = void 0;
 const defer_1 = __webpack_require__(650);
 const empty_1 = __webpack_require__(639);
+/**
+ * If the specified condition evaluates true, select the thenSource sequence.
+ * Otherwise, select the elseSource sequence.
+ *
+ * @export
+ * @template TSource The type of the elements in the result sequence.
+ * @param {(() => boolean)} condition Condition evaluated to decide which sequence to return.
+ * @param {Iterable<TSource>} thenSource Sequence returned in case evaluates true.
+ * @param {Iterable<TSource>} [elseSource=empty()] Sequence returned in case condition evaluates false.
+ * @returns {IterableX<TSource>} thenSource if condition evaluates true; elseSource otherwise.
+ */
 function iif(fn, thenSource, elseSource = empty_1.empty()) {
     return defer_1.defer(() => (fn() ? thenSource : elseSource));
 }
@@ -28926,12 +28595,11 @@ var TakeSubscriber = (function (_super) {
 
 /***/ }),
 /* 950 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
+/***/ (function(__unusedmodule, exports) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const url = __webpack_require__(835);
 function getProxyUrl(reqUrl) {
     let usingSsl = reqUrl.protocol === 'https:';
     let proxyUrl;
@@ -28946,7 +28614,7 @@ function getProxyUrl(reqUrl) {
         proxyVar = process.env['http_proxy'] || process.env['HTTP_PROXY'];
     }
     if (proxyVar) {
-        proxyUrl = url.parse(proxyVar);
+        proxyUrl = new URL(proxyVar);
     }
     return proxyUrl;
 }
@@ -28998,7 +28666,18 @@ exports.checkBypass = checkBypass;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.includes = void 0;
 const comparer_1 = __webpack_require__(492);
+/**
+ *  Determines whether an itreable includes a certain value among its entries, returning true or false as appropriate.
+ *
+ * @export
+ * @template T The type of elements in the source sequence.
+ * @param {Iterable<T>} source The source sequence to search for the item.
+ * @param {T} valueToFind The value to search for.
+ * @param {number} [fromIndex=0] The position in this iterable at which to begin searching for valueToFind.
+ * @returns {boolean} Returns true if the value valueToFind is found within the iterable.
+ */
 function includes(source, searchElement, fromIndex = 0) {
     let fromIdx = fromIndex;
     let i = 0;
@@ -29024,6 +28703,7 @@ exports.includes = includes;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.IterableX = void 0;
 const as_1 = __webpack_require__(496);
 const from_1 = __webpack_require__(166);
 const bindcallback_1 = __webpack_require__(270);
@@ -29050,9 +28730,17 @@ class IterableX {
     }
 }
 exports.IterableX = IterableX;
+IterableX.prototype[Symbol.toStringTag] = 'IterableX';
+Object.defineProperty(IterableX, Symbol.hasInstance, {
+    writable: true,
+    configurable: true,
+    value(inst) {
+        return !!(inst && inst[Symbol.toStringTag] === 'IterableX');
+    },
+});
 from_1._initialize(IterableX);
 try {
-    (isBrowser => {
+    ((isBrowser) => {
         if (isBrowser) {
             return;
         }
@@ -29456,34 +29144,7 @@ module.exports.shellSync = (cmd, opts) => handleShell(module.exports.sync, cmd, 
 
 
 /***/ }),
-/* 956 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class RangeAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(start, count) {
-        super();
-        this._start = start;
-        this._count = count;
-    }
-    async *[Symbol.asyncIterator]() {
-        for (let current = this._start, end = this._start + this._count; current < end; current++) {
-            yield current;
-        }
-    }
-}
-function range(start, count) {
-    return new RangeAsyncIterable(start, count);
-}
-exports.range = range;
-
-//# sourceMappingURL=range.js.map
-
-
-/***/ }),
+/* 956 */,
 /* 957 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -29507,8 +29168,8 @@ function plucker(props, length) {
     var mapper = function (x) {
         var currentProp = x;
         for (var i = 0; i < length; i++) {
-            var p = currentProp[props[i]];
-            if (typeof p !== 'undefined') {
+            var p = currentProp != null ? currentProp[props[i]] : undefined;
+            if (p !== void 0) {
                 currentProp = p;
             }
             else {
@@ -29556,16 +29217,94 @@ exports.elementAt = elementAt;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const filter_1 = __webpack_require__(593);
-function partition(source, predicate, thisArg) {
-    return [
-        new filter_1.FilterAsyncIterable(source, predicate, thisArg),
-        new filter_1.FilterAsyncIterable(source, (x, i) => !predicate(x, i), thisArg)
-    ];
+exports.publish = void 0;
+const iterablex_1 = __webpack_require__(954);
+const _refcountlist_1 = __webpack_require__(241);
+const create_1 = __webpack_require__(228);
+class PublishedBuffer extends iterablex_1.IterableX {
+    constructor(source) {
+        super();
+        this._stopped = false;
+        this._source = source;
+        this._buffer = new _refcountlist_1.RefCountList(0);
+    }
+    // eslint-disable-next-line complexity
+    *_getIterable(i) {
+        try {
+            while (1) {
+                let hasValue = false;
+                let current = {};
+                if (i >= this._buffer.count) {
+                    if (!this._stopped) {
+                        try {
+                            const next = this._source.next();
+                            hasValue = !next.done;
+                            // eslint-disable-next-line max-depth
+                            if (hasValue) {
+                                current = next.value;
+                            }
+                        }
+                        catch (e) {
+                            this._error = e;
+                            this._stopped = true;
+                        }
+                    }
+                    if (this._stopped) {
+                        if (this._error) {
+                            throw this._error;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+                    if (hasValue) {
+                        this._buffer.push(current);
+                    }
+                }
+                else {
+                    hasValue = true;
+                }
+                if (hasValue) {
+                    yield this._buffer.get(i);
+                }
+                else {
+                    break;
+                }
+                // eslint-disable-next-line no-param-reassign
+                i++;
+            }
+        }
+        finally {
+            this._buffer.done();
+        }
+    }
+    [Symbol.iterator]() {
+        this._buffer.readerCount++;
+        return this._getIterable(this._buffer.count)[Symbol.iterator]();
+    }
 }
-exports.partition = partition;
+/**
+ * Buffer enabling each iterator to retrieve elements from the shared source sequence, starting from the
+ * index at the point of obtaining the iterator.
+ *
+ * @export
+ * @template TSource Source sequence element type.
+ * @template TResult Result sequence element type.
+ * @param {(value: Iterable<TSource>) => Iterable<TResult>} [selector] Selector function with published
+ * access to the source sequence for each iterator.
+ * @returns {(OperatorFunction<TSource, TSource | TResult>)} Sequence resulting from applying the selector function to the
+ * published view over the source sequence.
+ */
+function publish(selector) {
+    return function publishOperatorFunction(source) {
+        return selector
+            ? create_1.create(() => selector(publish()(source))[Symbol.iterator]())
+            : new PublishedBuffer(source[Symbol.iterator]());
+    };
+}
+exports.publish = publish;
 
-//# sourceMappingURL=partition.js.map
+//# sourceMappingURL=publish.js.map
 
 
 /***/ }),
@@ -29576,6 +29315,7 @@ exports.partition = partition;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.pairwise = exports.PairwiseIterable = void 0;
 const iterablex_1 = __webpack_require__(954);
 class PairwiseIterable extends iterablex_1.IterableX {
     constructor(source) {
@@ -29597,6 +29337,14 @@ class PairwiseIterable extends iterablex_1.IterableX {
     }
 }
 exports.PairwiseIterable = PairwiseIterable;
+/**
+ * Returns a sequence of each element in the input sequence and its predecessor, with the exception of the
+ * first element which is only returned as the predecessor of the second element.
+ *
+ * @export
+ * @template TSource The type of the elements in the source sequence.
+ * @returns {OperatorFunction<TSource, TSource[]>} The result sequence.
+ */
 function pairwise() {
     return function pairwiseOperatorFunction(source) {
         return new PairwiseIterable(source);
@@ -29673,10 +29421,23 @@ module.exports = options => {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-function some(source, comparer) {
+exports.some = void 0;
+/**
+ * Determines whether any element of an iterable sequence satisfies a condition.
+ *
+ * @export
+ * @template T The type of the elements in the source sequence.
+ * @param {Iterable<T>} source An iterable sequence whose elements to apply the predicate to.
+ * @param {FindSubclassedOptions<T, S>} options The options which includes a required predicate, an optional
+ * thisArg for binding, and an abort signal for cancellation.
+ * @returns {boolean} Returns a boolean determining whether any elements in the source sequence
+ * pass the test in the specified predicate.
+ */
+function some(source, options) {
+    const { ['thisArg']: thisArg, ['predicate']: predicate } = options;
     let i = 0;
     for (const item of source) {
-        if (comparer(item, i++)) {
+        if (predicate.call(thisArg, item, i++)) {
             return true;
         }
     }
@@ -30067,28 +29828,7 @@ var FilterSubscriber = (function (_super) {
 //# sourceMappingURL=filter.js.map
 
 /***/ }),
-/* 982 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const identity_1 = __webpack_require__(296);
-async function toMap(source, keySelector, elementSelector = identity_1.identityAsync) {
-    const map = new Map();
-    for await (const item of source) {
-        const value = await elementSelector(item);
-        const key = await keySelector(item);
-        map.set(key, value);
-    }
-    return map;
-}
-exports.toMap = toMap;
-
-//# sourceMappingURL=tomap.js.map
-
-
-/***/ }),
+/* 982 */,
 /* 983 */,
 /* 984 */,
 /* 985 */,
@@ -30150,6 +29890,7 @@ var DeMaterializeSubscriber = (function (_super) {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.range = void 0;
 const iterablex_1 = __webpack_require__(954);
 class RangeIterable extends iterablex_1.IterableX {
     constructor(start, count) {
@@ -30163,6 +29904,14 @@ class RangeIterable extends iterablex_1.IterableX {
         }
     }
 }
+/**
+ * Generates an iterable sequence of integral numbers within a specified range.
+ *
+ * @export
+ * @param {number} start The value of the first integer in the sequence.
+ * @param {number} count The number of sequential integers to generate.
+ * @returns {IterableX<number>} An iterable sequence that contains a range of sequential integral numbers.
+ */
 function range(start, count) {
     return new RangeIterable(start, count);
 }
@@ -30186,35 +29935,7 @@ exports.isObject = isObject;
 //# sourceMappingURL=isObject.js.map
 
 /***/ }),
-/* 995 */
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const asynciterablex_1 = __webpack_require__(346);
-class OfAsyncIterable extends asynciterablex_1.AsyncIterableX {
-    constructor(args) {
-        super();
-        this._args = args;
-    }
-    async *[Symbol.asyncIterator]() {
-        for (const item of this._args) {
-            yield item;
-        }
-    }
-}
-exports.OfAsyncIterable = OfAsyncIterable;
-/** @nocollapse */
-function of(...args) {
-    return new OfAsyncIterable(args);
-}
-exports.of = of;
-
-//# sourceMappingURL=of.js.map
-
-
-/***/ }),
+/* 995 */,
 /* 996 */,
 /* 997 */
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
@@ -30247,7 +29968,7 @@ exports.from = from;
 const Range = __webpack_require__(124)
 const { ANY } = __webpack_require__(174)
 const satisfies = __webpack_require__(310)
-const compare = __webpack_require__(92)
+const compare = __webpack_require__(874)
 
 // Complex range `r1 || r2 || ...` is a subset of `R1 || R2 || ...` iff:
 // - Every simple range `r1, r2, ...` is a subset of some `R1, R2, ...`
@@ -30267,15 +29988,18 @@ const compare = __webpack_require__(92)
 //   - If EQ satisfies every C, return true
 //   - Else return false
 // - If GT
-//   - If GT is lower than any > or >= comp in C, return false
+//   - If GT.semver is lower than any > or >= comp in C, return false
 //   - If GT is >=, and GT.semver does not satisfy every C, return false
 // - If LT
-//   - If LT.semver is greater than that of any > comp in C, return false
+//   - If LT.semver is greater than any < or <= comp in C, return false
 //   - If LT is <=, and LT.semver does not satisfy every C, return false
 // - If any C is a = range, and GT or LT are set, return false
 // - Else return true
 
 const subset = (sub, dom, options) => {
+  if (sub === dom)
+    return true
+
   sub = new Range(sub, options)
   dom = new Range(dom, options)
   let sawNonNull = false
@@ -30298,6 +30022,9 @@ const subset = (sub, dom, options) => {
 }
 
 const simpleSubset = (sub, dom, options) => {
+  if (sub === dom)
+    return true
+
   if (sub.length === 1 && sub[0].semver === ANY)
     return dom.length === 1 && dom[0].semver === ANY
 
@@ -30336,6 +30063,7 @@ const simpleSubset = (sub, dom, options) => {
       if (!satisfies(eq, String(c), options))
         return false
     }
+
     return true
   }
 
@@ -30347,7 +30075,7 @@ const simpleSubset = (sub, dom, options) => {
     if (gt) {
       if (c.operator === '>' || c.operator === '>=') {
         higher = higherGT(gt, c, options)
-        if (higher === c)
+        if (higher === c && higher !== gt)
           return false
       } else if (gt.operator === '>=' && !satisfies(gt.semver, String(c), options))
         return false
@@ -30355,7 +30083,7 @@ const simpleSubset = (sub, dom, options) => {
     if (lt) {
       if (c.operator === '<' || c.operator === '<=') {
         lower = lowerLT(lt, c, options)
-        if (lower === c)
+        if (lower === c && lower !== lt)
           return false
       } else if (lt.operator === '<=' && !satisfies(lt.semver, String(c), options))
         return false

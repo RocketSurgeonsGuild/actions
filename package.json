@@ -12,6 +12,7 @@
     "dist": "npm run dist:merge-labels && npm run dist:sync-milestone",
     "dist:merge-labels": "ncc build ./merge-labels/src/main.ts -o ./merge-labels/dist/",
     "dist:sync-milestone": "ncc build ./sync-milestone/src/main.ts -o ./sync-milestone/dist/",
+    "dist:auto-label": "ncc build ./merge-labels/src/main.ts -o ./merge-labels/dist/",
     "test": "jest",
     "all": "npm run build && npm run format && npm run lint && npm run dist && npm test"
   },

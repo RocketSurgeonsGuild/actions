@@ -14,7 +14,7 @@ async function run(): Promise<void> {
                 pull_number: payload.pull_request.number,
             });
 
-            if (payload.action === 'opened' && pr.data.merged) {
+            if (payload.action === 'opened') {
                 await addPullRequestLabel(github, repo, pr.data);
             } 
         }

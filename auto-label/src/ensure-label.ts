@@ -21,6 +21,6 @@ export async function addPullRequestLabel(
     await github.issues.addLabels({
         ...request,
         issue_number: pr.number,
-        labels: [titleLabel],
+        labels: [titleLabel]
     });
 }

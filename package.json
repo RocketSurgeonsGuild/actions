@@ -38,7 +38,7 @@
     "@actions/io": "^1.0.2",
     "@actions/tool-cache": "^1.6.1",
     "ix": "^4.2.0",
-    "lodash": "^4.17.20",
+    "lodash": "^4.17.21",
     "lodash-es": "^4.17.20",
     "rxjs": "^6.6.3",
     "semver": "^7.3.4"

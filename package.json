@@ -41,7 +41,7 @@
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.20",
     "rxjs": "^6.6.6",
-    "semver": "^7.3.4"
+    "semver": "^7.3.5"
   },
   "devDependencies": {
     "@types/jest": "^26.0.21",

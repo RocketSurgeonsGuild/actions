@@ -1,4 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { forkJoin, from, empty, Observable, of } from 'rxjs';
+import { mergeMap, toArray, map, filter, expand, tap } from 'rxjs/operators';
+import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
+import * as ix from 'ix/iterable/operators';
 import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;
@@ -20,6 +24,6 @@ export async function addPullRequestLabel(
     await github.issues.addLabels({
         ...request,
         issue_number: pr.number,
-        labels: titleLabel.map(z => z.name),
+        labels: [titleLabel.map(z => z.name)],
     });
 }

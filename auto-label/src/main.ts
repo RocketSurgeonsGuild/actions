@@ -14,9 +14,10 @@ async function run(): Promise<void> {
                 pull_number: payload.pull_request.number,
             });
 
-            if (payload.action === 'opened' || payload.action === 'reopened') {
-                await addPullRequestLabel(github, repo, pr.data);
-            } 
+            // if (payload.action === 'opened' || payload.action === 'reopened') {
+            // } 
+
+            await addPullRequestLabel(github, repo, pr.data);
         }
     } catch (error) {
         setFailed(error.message);

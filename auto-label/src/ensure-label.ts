@@ -14,7 +14,7 @@ export async function addPullRequestLabel(
 ) {
     console.log(`pr title: ${pr.title}`);
     const title = pr.title.split(':')[0].trim();
-    const titleLabel = pr.labels.filter(z => z.name.includes(title));
+    const titleLabel : string = pr.labels.filter(z => z.name.includes(title));
     const hasLabel = titleLabel.length > 0;
 
     console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
@@ -24,6 +24,6 @@ export async function addPullRequestLabel(
     await github.issues.addLabels({
         ...request,
         issue_number: pr.number,
-        labels: [titleLabel.map(z => z.name)],
+        labels: [titleLabel],
     });
 }

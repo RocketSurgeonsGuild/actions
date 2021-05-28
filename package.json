@@ -36,7 +36,7 @@
     "@actions/glob": "^0.1.2",
     "@actions/http-client": "^1.0.11",
     "@actions/io": "^1.1.0",
-    "@actions/tool-cache": "^1.6.1",
+    "@actions/tool-cache": "^1.7.0",
     "ix": "^4.3.1",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",

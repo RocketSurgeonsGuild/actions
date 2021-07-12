@@ -37,7 +37,7 @@
     "@actions/http-client": "^1.0.11",
     "@actions/io": "^1.1.1",
     "@actions/tool-cache": "^1.7.1",
-    "ix": "^4.4.0",
+    "ix": "^4.4.1",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "rxjs": "^6.6.7",

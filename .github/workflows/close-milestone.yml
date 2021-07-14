@@ -15,7 +15,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install GitReleaseManager
-        uses: gittools/actions/gitreleasemanager/setup@v0.9.9
+        uses: gittools/actions/gitreleasemanager/setup@v0.9.10
         with:
           versionSpec: '0.11.x'
 

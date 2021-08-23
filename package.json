@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@types/jest": "^27.0.1",
-    "@types/js-yaml": "^4.0.2",
+    "@types/js-yaml": "^4.0.3",
     "@types/lodash-es": "^4.17.4",
     "@types/node": "^16.7.1",
     "@types/semver": "^7.3.8",

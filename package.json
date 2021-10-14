@@ -1,73 +1,12 @@
 {
-  "name": "rsg-actions",
-  "version": "0.0.0",
-  "private": true,
-  "description": "Rocket Surgeons Actions",
-  "main": "lib/main.js",
-  "scripts": {
-    "build": "tsc",
-    "format": "prettier --write **/*.ts",
-    "format-check": "prettier --check **/*.ts",
-    "lint": "eslint --fix **/*.ts",
-    "dist": "npm run dist:merge-labels && npm run dist:sync-milestone && npm run dist:auto-label",
-    "dist:merge-labels": "ncc build ./merge-labels/src/main.ts -o ./merge-labels/dist/",
-    "dist:sync-milestone": "ncc build ./sync-milestone/src/main.ts -o ./sync-milestone/dist/",
-    "dist:auto-label": "ncc build ./auto-label/src/main.ts -o ./auto-label/dist/",
-    "test": "jest",
-    "all": "npm run build && npm run format && npm run lint && npm run dist && npm test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
-  },
-  "keywords": [
-    "actions",
-    "node",
-    "setup"
-  ],
-  "author": "Rocket Surgeons Guild",
-  "license": "MIT",
-  "dependencies": {
-    "@actions/artifact": "^0.5.2",
-    "@actions/cache": "^1.0.7",
-    "@actions/core": "^1.6.0",
-    "@actions/exec": "^1.1.0",
-    "@actions/github": "^4.0.0",
-    "@actions/glob": "^0.2.0",
-    "@actions/http-client": "^1.0.11",
-    "@actions/io": "^1.1.1",
-    "@actions/tool-cache": "^1.7.1",
-    "ix": "^4.4.1",
-    "lodash": "^4.17.21",
-    "lodash-es": "^4.17.21",
-    "rxjs": "^6.6.7",
-    "semver": "^7.3.5"
-  },
-  "devDependencies": {
-    "@types/jest": "^27.0.2",
-    "@types/js-yaml": "^4.0.3",
-    "@types/lodash-es": "^4.17.5",
-    "@types/node": "^16.10.4",
-    "@types/semver": "^7.3.8",
-    "@typescript-eslint/eslint-plugin": "^4.33.0",
-    "@typescript-eslint/parser": "^4.33.0",
-    "@zeit/ncc": "^0.22.3",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^8.2.0",
-    "eslint-plugin-eslint-comments": "^3.0.1",
-    "eslint-plugin-import": "^2.25.2",
-    "eslint-plugin-jest": "^25.0.5",
-    "eslint-plugin-prettier": "^4.0.0",
-    "eslint-rule-documentation": "^1.0.0",
-    "husky": "^7.0.2",
-    "jest": "^26.6.3",
-    "jest-circus": "^27.2.5",
-    "jest-cli": "^26.6.3",
-    "js-yaml": "^4.1.0",
-    "lint-staged": "^11.2.3",
-    "prettier": "^2.4.1",
-    "ts-jest": "^26.5.6",
-    "ts-node": "^10.3.0",
-    "typescript": "^4.1.5"
-  }
+    "private": true,
+    "devDependencies": {
+        "@prettier/plugin-xml": "^1.1.0",
+        "husky": "^7.0.0",
+        "lint-staged": "^11.2.0",
+        "prettier": "^2.4.1"
+    },
+    "scripts": {
+        "prepare": "husky install"
+    }
 }

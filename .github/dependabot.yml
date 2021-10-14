@@ -15,3 +15,14 @@ updates:
     assignees:
       - 'david-driscoll'
     open-pull-requests-limit: 100
+
+  - package-ecosystem: 'nuget'
+    directory: '/'
+    schedule:
+      interval: 'daily'
+    assignees:
+      - 'david-driscoll'
+    ignore:
+      - dependency-name: Microsoft.Extensions.*
+      - dependency-name: Microsoft.AspNetCore.*
+    open-pull-requests-limit: 100

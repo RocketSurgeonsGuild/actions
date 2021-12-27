@@ -1,16 +1,25 @@
 name: Create Milestone and Draft Release
+
 on:
+  workflow_call:
+    # inputs:
+    secrets:
+      GITHUB_TOKEN:
+       required: true
+      RSG_BOT_TOKEN:
+        required: true
   push:
     branches:
       - master
     paths-ignore:
       - '**/*.md'
+
 jobs:
   create_milestone_and_draft_release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
         with:
           fetch-depth: 0
 
@@ -18,18 +27,18 @@ jobs:
         run: git fetch --prune
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.9
+        uses: gittools/actions/gitversion/setup@v0.9.11
         with:
           versionSpec: '5.x'
 
       - name: Install GitReleaseManager
-        uses: gittools/actions/gitreleasemanager/setup@v0.9.9
+        uses: gittools/actions/gitreleasemanager/setup@v0.9.11
         with:
           versionSpec: '0.11.x'
 
       - name: Use GitVersion
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.9
+        uses: gittools/actions/gitversion/execute@v0.9.11
 
       - name: Create Milestone
         uses: WyriHaximus/github-action-create-milestone@v1
@@ -48,7 +57,7 @@ jobs:
           echo "::set-output name=repository::$($parts[1])"
 
       - name: sync milestones
-        uses: ./sync-milestone/
+        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.2.4
         with:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -59,7 +68,7 @@ jobs:
           dotnet gitreleasemanager create `
             -o "${{ steps.repository.outputs.owner }}" `
             -r "${{ steps.repository.outputs.repository }}" `
-            --token "${{ secrets.GITHUB_TOKEN }}" `
+            --token "${{ secrets.RSG_BOT_TOKEN }}" `
             -m "v${{ steps.gitversion.outputs.majorMinorPatch }}"
 
       - name: Export Changelog

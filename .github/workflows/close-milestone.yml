@@ -1,6 +1,13 @@
 name: Close Milestone
 
 on:
+  workflow_call:
+    # inputs:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+      RSG_BOT_TOKEN:
+        required: true
   release:
     types:
       - released
@@ -10,38 +17,55 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.4.0
         with:
           fetch-depth: 0
 
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.11
+        with:
+          versionSpec: '5.x'
+
       - name: Install GitReleaseManager
-        uses: gittools/actions/gitreleasemanager/setup@v0.9.9
+        uses: gittools/actions/gitreleasemanager/setup@v0.9.11
         with:
           versionSpec: '0.11.x'
+
+      - name: Use GitVersion
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.11
 
       # Ensure the milestone exists
       - name: Create Milestone
         uses: WyriHaximus/github-action-create-milestone@v1
         with:
-          title: ${{ github.event.release.name }}
+          title: v${{ steps.gitversion.outputs.majorMinorPatch }}
         env:
           GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
         continue-on-error: true
 
       # move any issues to that milestone in the event the release is renamed
       - name: sync milestones
-        uses: ./sync-milestone/
+        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.2.4
         with:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.RSG_BOT_TOKEN }}
 
-      # Close the milestone based on the given release
+      - name: Get Repo and Owner
+        shell: pwsh
+        id: repository
+        if: ${{ !github.event.release.prerelease && steps.gitversion.outputs.preReleaseTag == '' }}
+        run: |
+          $parts = $ENV:GITHUB_REPOSITORY.Split('/')
+          echo "::set-output name=owner::$($parts[0])"
+          echo "::set-output name=repository::$($parts[1])"
+
       - name: Close Milestone
         shell: pwsh
-        if: ${{ !github.event.release.prerelease }}
+        if: ${{ !github.event.release.prerelease && steps.gitversion.outputs.preReleaseTag == '' }}
         run: |
           dotnet gitreleasemanager close `
-            -o "${{ github.event.repository.owner.login }}" `
-            -r "${{ github.event.repository.name }}" `
+            -o "${{ steps.repository.outputs.owner }}" `
+            -r "${{ steps.repository.outputs.repository }}" `
             --token "${{ secrets.GITHUB_TOKEN }}" `
-            -m "${{ github.event.release.name }}"
+            -m "v${{ steps.gitversion.outputs.majorMinorPatch }}"

@@ -4,11 +4,9 @@ on:
   workflow_call:
     # inputs:
     secrets:
-      nuget_apikey:
-        type: string
+      RSG_NUGET_API_KEY:
         required: true
-      ado_apikey:
-        type: string
+      RSG_AZURE_DEVOPS:
         required: false
 
 jobs:
@@ -33,7 +31,7 @@ jobs:
         # continue-on-error: true
         if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && startsWith(github.event.workflow_run.head_branch, 'v') # this is the best approximation for a tag
         env:
-          ApiKey: ${{ secrets.nuget_apikey }}
+          ApiKey: ${{ secrets.RSG_NUGET_API_KEY }}
         shell: pwsh
         run: |
           dotnet nuget push **/*.nupkg  --skip-duplicate -s nuget.org --api-key $ENV:ApiKey
@@ -41,9 +39,9 @@ jobs:
 
       - name: dev.azure.com
         continue-on-error: true
-        if: secrets.ado_apikey && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        if: secrets.RSG_AZURE_DEVOPS && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
         env:
-          ApiKey: ${{ secrets.ado_apikey }}
+          ApiKey: ${{ secrets.RSG_AZURE_DEVOPS }}
         shell: pwsh
         run: |
           dotnet nuget add source https://rocketsurgeonsguild.pkgs.visualstudio.com/Libraries/_packaging/Packages/nuget/v3/index.json --store-password-in-clear-text --name LibrariesPackages --username azuredevops --password $ENV:ApiKey
@@ -51,9 +49,9 @@ jobs:
 
       - name: preview.dev.azure.com
         continue-on-error: true
-        if: secrets.ado_apikey && (github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main')
+        if: secrets.RSG_AZURE_DEVOPS && (github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main')
         env:
-          ApiKey: ${{ secrets.ado_apikey }}
+          ApiKey: ${{ secrets.RSG_AZURE_DEVOPS }}
         shell: pwsh
         run: |
           dotnet nuget add source https://rocketsurgeonsguild.pkgs.visualstudio.com/Libraries/_packaging/Preview/nuget/v3/index.json --store-password-in-clear-text --name LibrariesPreview --username azuredevops --password $ENV:ApiKey

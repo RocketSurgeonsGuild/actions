@@ -1,0 +1,21 @@
+name: 'Install dotnet sdk'
+description: 'Installs dotnet sdks'
+runs:
+  using: "composite"
+  steps:
+    - name: 🔨 Use .NET Core 2.1 SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '2.1.x'
+    - name: 🔨 Use .NET Core 3.1 SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.x'
+    - name: 🔨 Use .NET Core 5.0 SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '5.0.x'
+    - name: 🔨 Use .NET Core 6.0 SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'

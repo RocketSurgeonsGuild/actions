@@ -2,10 +2,6 @@ name: Sync Labels
 
 on:
   workflow_call:
-    # inputs:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
   push:
     branches:
       - master

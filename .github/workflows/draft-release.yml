@@ -4,8 +4,6 @@ on:
   workflow_call:
     # inputs:
     secrets:
-      GITHUB_TOKEN:
-       required: true
       RSG_BOT_TOKEN:
         required: true
   push:

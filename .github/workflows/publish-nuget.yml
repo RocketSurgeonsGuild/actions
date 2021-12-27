@@ -29,7 +29,7 @@ jobs:
 
       - name: nuget.org
         # continue-on-error: true
-        if: (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main') && startsWith(github.event.workflow_run.head_branch, 'v') # this is the best approximation for a tag
+        if: startsWith(github.event.workflow_run.head_branch, 'refs/tags/') # this is the best approximation for a tag
         env:
           ApiKey: ${{ secrets.RSG_NUGET_API_KEY }}
         shell: pwsh

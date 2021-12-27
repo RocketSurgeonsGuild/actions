@@ -39,7 +39,7 @@ jobs:
 
       - name: dev.azure.com
         continue-on-error: true
-        if: secrets.RSG_AZURE_DEVOPS && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         env:
           ApiKey: ${{ secrets.RSG_AZURE_DEVOPS }}
         shell: pwsh
@@ -49,7 +49,7 @@ jobs:
 
       - name: preview.dev.azure.com
         continue-on-error: true
-        if: secrets.RSG_AZURE_DEVOPS && (github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main')
+        if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/main'
         env:
           ApiKey: ${{ secrets.RSG_AZURE_DEVOPS }}
         shell: pwsh

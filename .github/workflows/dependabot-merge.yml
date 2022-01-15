@@ -79,9 +79,6 @@ jobs:
           commit_message: Update packages in a batch
           file_pattern: '*.props *.targets *.*proj'
           push_options: '--force'
-          skip_dirty_check: false
-          skip_fetch: true
-          skip_checkout: true
   comment:
     runs-on: ubuntu-latest
     steps:

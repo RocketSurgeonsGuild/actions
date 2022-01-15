@@ -51,7 +51,7 @@ jobs:
       - name: Run nukeeper
         uses: nick-invision/retry@v2
         with:
-          timeout_seconds: 30
+          timeout_seconds: 60
           max_attempts: 1
           continue_on_error: true
           shell: pwsh

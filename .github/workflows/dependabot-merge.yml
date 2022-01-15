@@ -58,17 +58,13 @@ jobs:
           command: |
             $title = '${{ github.event.pull_request.title }}'
             $prefix = '';
-            if ($title.StartsWith('Bump Rocket.Surgery'))
-            {
-              $prefix = ($title.Split(' ')[1].Split('.') | select -First 3) -join '.'
-            }
-            elseif ($title.StartsWith('Bump Microsoft'))
-            {
-              $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
-            }
-            elseif ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
+            if ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
             {
               $prefix = 'Nuke'
+            }
+            elseif ($title.StartsWith('Bump Microsoft') -or $title.StartsWith('Bump Rocket.Surgery'))
+            {
+              $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
             }
             else
             {

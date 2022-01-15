@@ -129,6 +129,7 @@ jobs:
             || contains(github.event.pull_request.labels.*.name, 'javascript')
             || contains(github.event.pull_request.labels.*.name, 'github-actions')
         uses: alexwilson/enable-github-automerge-action@1.0.0
+        continue-on-error: true
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
           merge-method: 'SQUASH'

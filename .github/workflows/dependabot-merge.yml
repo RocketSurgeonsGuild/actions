@@ -112,13 +112,13 @@ jobs:
       - name: Dependabot Commenter
         uses: actions-ecosystem/action-create-comment@v1
         if: |
-             (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
-             &&
-             (
-                contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-             || contains(github.event.pull_request.labels.*.name, 'javascript')
-             || contains(github.event.pull_request.labels.*.name, 'github-actions')
-             )
+          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
+          &&
+          (
+            contains(github.event.pull_request.labels.*.name, ':shipit: merge')
+          || contains(github.event.pull_request.labels.*.name, 'javascript')
+          || contains(github.event.pull_request.labels.*.name, 'github-actions')
+          )
         with:
           github_token: '${{ secrets.RSG_BOT_TOKEN }}'
           body: '@dependabot squash and merge'
@@ -126,7 +126,7 @@ jobs:
       - name: GitHub Automerge
         if: |
           (
-            github.event.label.name == ':shipit: merge'
+            contains(github.event.pull_request.labels.*.name, ':shipit: merge')
           ) && (
                github.event.pull_request.user.login != 'dependabot[bot]'
             && github.event.pull_request.user.login != 'dependabot-preview[bot]'

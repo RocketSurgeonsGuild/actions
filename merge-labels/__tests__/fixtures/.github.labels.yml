@@ -1,4 +1,4 @@
-- name: ":beetle: bug"
+- name: ":lady_beetle: bug"
   color: "d73a4a"
   description: "Something isn't working"
 - name: ":blue_book: documentation"

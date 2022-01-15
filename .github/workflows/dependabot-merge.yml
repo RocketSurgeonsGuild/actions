@@ -49,30 +49,35 @@ jobs:
       - run: dotnet tool install -g nukeeper
 
       - name: Run nukeeper
-        shell: pwsh
-        run: |
-          $title = '${{ github.event.pull_request.title }}'
-          $prefix = '';
-          if ($title.StartsWith('Bump Rocket.Surgery'))
-          {
-            $prefix = ($title.Split(' ')[1].Split('.') | select -First 3) -join '.'
-          }
-          elseif ($title.StartsWith('Bump Microsoft'))
-          {
-            $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
-          }
-          elseif ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
-          {
-            $prefix = 'Nuke'
-          }
-          else
-          {
-            $prefix = ($title.Split(' ')[1].Split('.') | select -First 1) -join '.'
-          }
-          if ($prefix)
-          {
-            nukeeper update -m 100 -i "$prefix" -a 0
-          }
+        uses: nick-invision/retry@v2
+        with:
+          timeout_seconds: 30
+          max_attempts: 1
+          continue_on_error: true
+          shell: pwsh
+          command: |
+            $title = '${{ github.event.pull_request.title }}'
+            $prefix = '';
+            if ($title.StartsWith('Bump Rocket.Surgery'))
+            {
+              $prefix = ($title.Split(' ')[1].Split('.') | select -First 3) -join '.'
+            }
+            elseif ($title.StartsWith('Bump Microsoft'))
+            {
+              $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
+            }
+            elseif ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
+            {
+              $prefix = 'Nuke'
+            }
+            else
+            {
+              $prefix = ($title.Split(' ')[1].Split('.') | select -First 1) -join '.'
+            }
+            if ($prefix)
+            {
+              nukeeper update -m 100 -i "$prefix" -a 0
+            }
 
       - uses: stefanzweifel/git-auto-commit-action@v4
         with:

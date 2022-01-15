@@ -76,6 +76,7 @@ jobs:
             }
             if ($prefix)
             {
+              rm *.sln
               nukeeper update -m 100 -i "$prefix" -a 0
             }
 

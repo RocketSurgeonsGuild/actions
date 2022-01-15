@@ -125,12 +125,9 @@ jobs:
 
       - name: GitHub Automerge
         if: |
-          (
             contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-          ) && (
-               github.event.pull_request.user.login != 'dependabot[bot]'
-            && github.event.pull_request.user.login != 'dependabot-preview[bot]'
-          )
+            || contains(github.event.pull_request.labels.*.name, 'javascript')
+            || contains(github.event.pull_request.labels.*.name, 'github-actions')
         uses: alexwilson/enable-github-automerge-action@1.0.0
         with:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
@@ -190,7 +187,7 @@ jobs:
 
       - name: GitHub Remove Labels
         if: |
-          github.event.action == 'closed' && github.event.pull_request.merged == 'true'
+          github.event.action == 'closed'
         uses: actions-ecosystem/action-remove-labels@v1
         with:
           labels: |

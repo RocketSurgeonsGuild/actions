@@ -71,12 +71,14 @@ jobs:
             nukeeper update -m 100 -i "$prefix" -a 0
           }
 
-      - uses: EndBug/add-and-commit@v7
+      - uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          add: '*.props *.targets *.*proj'
-          default_author: github_actions
-          message: 'Update packages in a batch'
-
+          commit_message: Update packages in a batch
+          file_pattern: '*.props *.targets *.*proj'
+          push_options: '--force'
+          skip_dirty_check: true
+          skip_fetch: true
+          skip_checkout: true
   comment:
     runs-on: ubuntu-latest
     steps:

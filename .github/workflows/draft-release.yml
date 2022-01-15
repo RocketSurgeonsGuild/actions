@@ -11,6 +11,8 @@ on:
       - master
     paths-ignore:
       - '**/*.md'
+  schedule:
+    - cron: '0 0 * * 4'
 
 jobs:
   create_milestone_and_draft_release:

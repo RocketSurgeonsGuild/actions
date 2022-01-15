@@ -42,8 +42,6 @@ jobs:
         run: echo "$RUNNER_CONTEXT"
 
       - uses: actions/checkout@v2.4.0
-        with:
-          token: ${{ secrets.RSG_BOT_TOKEN }}
 
       - run: dotnet tool install -g nukeeper
 
@@ -73,10 +71,12 @@ jobs:
             nukeeper update -m 100 -i "$prefix" -a 0
           }
 
-      - uses: stefanzweifel/git-auto-commit-action@v4
+      - name: push
+        uses: github-actions-x/commit@v2.8
         with:
-          commit_message: Update packages in a batch
-          file_pattern: '*.targets *.props *.*proj'
+          github-token: ${{ secrets.RSG_BOT_TOKEN }}
+          commit-message: 'Update packages in a batch'
+          rebase: 'true' # pull and rebase before commit
   comment:
     runs-on: ubuntu-latest
     steps:

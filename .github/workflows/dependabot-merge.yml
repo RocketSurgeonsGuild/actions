@@ -70,7 +70,7 @@ jobs:
           }
           if ($prefix)
           {
-            nukeeper update -m 100 -i "$prefix"
+            nukeeper update -m 100 -i "$prefix" -a 0
           }
 
       - uses: stefanzweifel/git-auto-commit-action@v4

@@ -75,6 +75,7 @@ jobs:
         uses: github-actions-x/commit@v2.8
         with:
           github-token: ${{ secrets.RSG_BOT_TOKEN }}
+          push-branch: ${{ github.head_ref }}
           commit-message: 'Update packages in a batch'
           rebase: 'true' # pull and rebase before commit
   comment:

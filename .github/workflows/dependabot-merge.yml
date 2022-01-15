@@ -77,7 +77,7 @@ jobs:
           github-token: ${{ secrets.RSG_BOT_TOKEN }}
           push-branch: ${{ github.head_ref }}
           commit-message: 'Update packages in a batch'
-          rebase: 'true' # pull and rebase before commit
+          force-push: true
   comment:
     runs-on: ubuntu-latest
     steps:

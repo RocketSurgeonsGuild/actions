@@ -51,9 +51,9 @@ jobs:
       - name: Run nukeeper
         uses: nick-invision/retry@v2
         with:
-          timeout_seconds: 60
-          max_attempts: 1
-          continue_on_error: true
+          timeout_minutes: 5
+          max_attempts: 3
+          # continue_on_error: true
           shell: pwsh
           command: |
             $title = '${{ github.event.pull_request.title }}'

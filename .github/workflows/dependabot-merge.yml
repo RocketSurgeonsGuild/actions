@@ -12,6 +12,7 @@ on:
       - opened
       - reopened
       - closed
+      - synchronize
 
 jobs:
   batch-update:
@@ -82,6 +83,7 @@ jobs:
           commit_message: Update packages in a batch
           file_pattern: '*.props *.targets *.*proj'
           push_options: '--force'
+
   comment:
     runs-on: ubuntu-latest
     steps:
@@ -104,10 +106,6 @@ jobs:
         env:
           RUNNER_CONTEXT: ${{ toJson(runner) }}
         run: echo "$RUNNER_CONTEXT"
-
-      - uses: actions/checkout@v2.4.0
-        with:
-          ref: master
 
       - name: Dependabot Commenter
         uses: actions-ecosystem/action-create-comment@v1
@@ -136,29 +134,52 @@ jobs:
           github-token: '${{ secrets.GITHUB_TOKEN }}'
           merge-method: 'SQUASH'
 
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJson(job) }}
+        run: echo "$JOB_CONTEXT"
+
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "$STEPS_CONTEXT"
+
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+
       - name: GitHub Add Labels
         uses: actions-ecosystem/action-add-labels@v1
         if: |
-             (github.event.action == 'opened' || github.event.action == 'reopened') &&
-             (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
-             (
-                  startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper.CommandLineTools')
-               || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
-               || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
-               || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')
-               || startsWith(github.event.pull_request.title, 'Bump Bogus')
-               || startsWith(github.event.pull_request.title, 'Bump coverlet')
-               || startsWith(github.event.pull_request.title, 'Bump FakeItEasy')
-               || startsWith(github.event.pull_request.title, 'Bump FluentAssertions')
-               || startsWith(github.event.pull_request.title, 'Bump xunit')
-               || startsWith(github.event.pull_request.title, 'Bump Microsoft.NET.Test.Sdk')
-               || startsWith(github.event.pull_request.title, 'Bump Microsoft.SourceLink')
-               || startsWith(github.event.pull_request.title, 'Bump Microsoft.Extensions')
-               || startsWith(github.event.pull_request.title, 'Bump Microsoft.AspNetCore')
-               || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
-               || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
-               || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
-             )
+          (github.event.action == 'opened' || github.event.action == 'reopened') &&
+          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
+          (
+               startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper.CommandLineTools')
+            || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
+            || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
+            || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')
+            || startsWith(github.event.pull_request.title, 'Bump Bogus')
+            || startsWith(github.event.pull_request.title, 'Bump coverlet')
+            || startsWith(github.event.pull_request.title, 'Bump FakeItEasy')
+            || startsWith(github.event.pull_request.title, 'Bump FluentAssertions')
+            || startsWith(github.event.pull_request.title, 'Bump xunit')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.NET.Test.Sdk')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.SourceLink')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.Extensions')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.AspNetCore')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
+            || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
+          )
         with:
           labels: |
             :shipit: merge

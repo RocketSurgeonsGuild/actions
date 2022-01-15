@@ -14,6 +14,69 @@ on:
       - closed
 
 jobs:
+  batch-update:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event.action == 'opened' || github.event.action == 'reopened') &&
+      (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
+      contains(github.event.pull_request.labels.*.name, '.NET')
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+        run: echo "$GITHUB_CONTEXT"
+
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJson(job) }}
+        run: echo "$JOB_CONTEXT"
+
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJson(steps) }}
+        run: echo "$STEPS_CONTEXT"
+
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJson(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+
+      - uses: actions/checkout@v2.4.0
+        with:
+          token: ${{ secrets.RSG_BOT_TOKEN }}
+
+      - run: dotnet tool install -g nukeeper
+
+      - name: Run nukeeper
+        shell: pwsh
+        run: |
+          $title = '${{ github.event.pull_request.title }}'
+          $prefix = '';
+          if ($title.StartsWith('Bump Rocket.Surgery'))
+          {
+            $prefix = ($title.Split(' ')[1].Split('.') | select -First 3) -join '.'
+          }
+          elseif ($title.StartsWith('Bump Microsoft'))
+          {
+            $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
+          }
+          elseif ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
+          {
+            $prefix = 'Nuke'
+          }
+          else
+          {
+            $prefix = ($title.Split(' ')[1].Split('.') | select -First 1) -join '.'
+          }
+          if ($prefix)
+          {
+            nukeeper update -m 100 -i "$prefix"
+          }
+
+      - uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update packages in a batch
+          file_pattern: '*.targets *.props *.*proj'
   comment:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +107,7 @@ jobs:
       - name: Dependabot Commenter
         uses: actions-ecosystem/action-create-comment@v1
         if: |
-          (github.event.action == 'labeled' || github.event.action == 'opened')
+          (github.event.action == 'labeled' || github.event.action == 'opened' || github.event.action == 'reopened')
           && (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
           && (
               contains(github.event.pull_request.labels.*.name, ':shipit: merge')
@@ -71,10 +134,10 @@ jobs:
       - name: GitHub Add Labels
         uses: actions-ecosystem/action-add-labels@v1
         if: |
-             (github.event.action == 'opened') &&
+             (github.event.action == 'opened' || github.event.action == 'reopened') &&
              (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
              (
-                startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper.CommandLineTools')
+                  startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper.CommandLineTools')
                || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
                || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
                || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')

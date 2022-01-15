@@ -160,7 +160,7 @@ jobs:
 
       - name: GitHub Remove Labels
         if: |
-          github.event.action == 'closed'
+          github.event.action == 'closed' && github.event.pull_request.merged == 'true'
         uses: actions-ecosystem/action-remove-labels@v1
         with:
           labels: |

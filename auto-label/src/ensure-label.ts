@@ -1,8 +1,4 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-import { forkJoin, from, empty, Observable, of } from 'rxjs';
-import { mergeMap, toArray, map, filter, expand, tap } from 'rxjs/operators';
-import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
-import * as ix from 'ix/iterable/operators';
 import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;
@@ -10,10 +6,11 @@ type GitHub = ReturnType<typeof getOctokit>;
 export async function addPullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
-    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData) {
+    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
+) {
     console.log(`pr title: ${pr.title}`);
     const title = pr.title.split(':')[0].trim();
-    var labelsForRepository = await github.issues.listLabelsForRepo({ ...request});
+    var labelsForRepository = await github.issues.listLabelsForRepo({ ...request });
     const titleLabel = labelsForRepository.data.filter(z => z.name.includes(title)).map(x => x.name);
     const hasLabel = titleLabel.length > 0;
 

@@ -1506,10 +1506,11 @@ function addPullRequestLabel(github, request, pr) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log(`pr title: ${pr.title}`);
         const title = pr.title.split(':')[0].trim();
-        const titleLabel = pr.labels.filter(z => z.name.includes(title)).map(x => x.name);
+        var labelsForRepository = yield github.issues.listLabelsForRepo(Object.assign({}, request));
+        const titleLabel = labelsForRepository.data.filter(z => z.name.includes(title)).map(x => x.name);
         const hasLabel = titleLabel.length > 0;
         console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
-        if (hasLabel)
+        if (!hasLabel)
             return;
         console.log('adding title label', titleLabel);
         yield github.issues.addLabels(Object.assign(Object.assign({}, request), { issue_number: pr.number, labels: titleLabel }));

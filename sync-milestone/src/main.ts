@@ -32,7 +32,7 @@ async function run(): Promise<void> {
             await ensureMilestonesAreCorrect(github, repo).toPromise();
         }
     } catch (error) {
-        setFailed(error.message);
+        setFailed((error as any).message);
     }
 }
 

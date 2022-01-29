@@ -84,6 +84,14 @@ jobs:
           file_pattern: '*.props *.targets *.*proj'
           push_options: '--force'
 
+      - name: GitHub Remove Labels
+        if: |
+          github.event.action == 'labeled'
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: |
+            .NET
+
   comment:
     runs-on: ubuntu-latest
     if: |

@@ -188,6 +188,7 @@ jobs:
             || startsWith(github.event.pull_request.title, 'Bump Microsoft.AspNetCore')
             || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
             || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Extensions.Testing')
             || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
           )
         with:

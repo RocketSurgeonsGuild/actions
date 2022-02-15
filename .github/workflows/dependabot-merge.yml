@@ -200,6 +200,33 @@ jobs:
           labels: |
             :shipit: merge
 
+      - name: GitHub Private Dependency Labels
+        uses: actions-ecosystem/action-add-labels@v1
+        if: |
+          (github.event.action == 'opened' || github.event.action == 'reopened') &&
+          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
+          (
+               startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper')
+            || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
+            || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
+            || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')
+            || startsWith(github.event.pull_request.title, 'Bump Bogus')
+            || startsWith(github.event.pull_request.title, 'Bump coverlet')
+            || startsWith(github.event.pull_request.title, 'Bump FakeItEasy')
+            || startsWith(github.event.pull_request.title, 'Bump FluentAssertions')
+            || startsWith(github.event.pull_request.title, 'Bump xunit')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.NET.Test.Sdk')
+            || startsWith(github.event.pull_request.title, 'Bump Microsoft.SourceLink')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
+            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Extensions.Testing')
+            || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
+          )
+        with:
+          github_token: '${{ secrets.RSG_BOT_TOKEN }}'
+          labels: |
+            :briefcase: private-dependencies
+
       - name: GitHub Remove Labels
         if: |
           github.event.action == 'closed'

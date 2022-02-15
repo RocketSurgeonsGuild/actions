@@ -227,6 +227,19 @@ jobs:
           labels: |
             :briefcase: private-dependencies
 
+      - name: GitHub Private Dependency Labels
+        if: |
+          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
+          &&
+          (
+             contains(github.event.pull_request.labels.*.name, 'javascript')
+          || contains(github.event.pull_request.labels.*.name, 'github-actions')
+          )
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            :briefcase: private-dependencies
+
       - name: GitHub Remove Labels
         if: |
           github.event.action == 'closed'

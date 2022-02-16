@@ -30,7 +30,7 @@ changelog:
     - title: ':hammer: Chores and Dependencies'
       labels:
         - ':hammer: chore'
-        - ':briefcase: private-dependencies'
+        - ':truck: private-dependencies'
     - title: Help Wanted
       labels:
         - 'good first issue'

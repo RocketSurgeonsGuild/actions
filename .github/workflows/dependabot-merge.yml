@@ -225,7 +225,7 @@ jobs:
         with:
           github_token: '${{ secrets.RSG_BOT_TOKEN }}'
           labels: |
-            :briefcase: private-dependencies
+            :truck: private-dependencies
 
       - name: GitHub Private Dependency Labels
         if: |
@@ -238,7 +238,7 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: |
-            :briefcase: private-dependencies
+            :truck: private-dependencies
 
       - name: GitHub Remove Labels
         if: |

@@ -49,9 +49,13 @@ jobs:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Release
-        uses: softprops/action-gh-release@v1
+      - uses: ncipollo/release-action@v1
         with:
-          generate_release_notes: true
+          allowUpdates: true
+          generateReleaseNotes: true
           draft: true
-          tag_name: "v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          omitNameDuringUpdate: true
+          name: "v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          tag: "v${{ steps.gitversion.outputs.majorMinorPatch }}"
+          token: ${{ secrets.RSG_BOT_TOKEN }}
+          commit: ${{ github.base_ref }}

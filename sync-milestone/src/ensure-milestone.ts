@@ -5,6 +5,7 @@ import { getOctokit } from '@actions/github';
 import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
 import * as ix from 'ix/iterable/operators';
 import { parse, rcompare } from 'semver';
+import type { Endpoints } from '@octokit/types/dist-types/generated/Endpoints';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
@@ -69,11 +70,7 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
     );
 }
 
-export function updatePullRequestMilestone(
-    github: GitHub,
-    request: { owner: string; repo: string },
-    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
-) {
+export function updatePullRequestMilestone(github: GitHub, request: { owner: string; repo: string }, pr: Awaited<ReturnType<GitHub['pulls']['get']>>['data']) {
     const milestone = getVersionMilestones(github, request).pipe(map(z => z[0]));
 
     return milestone.pipe(
@@ -97,10 +94,10 @@ export function updatePullRequestMilestone(
 export async function updatePullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
-    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
+    pr: Awaited<ReturnType<GitHub['pulls']['get']>>['data'],
     defaultLabel: string,
 ) {
-    const mergeLabel = pr.labels.filter(z => !z.name.includes('merge'));
+    const mergeLabel = pr.labels.filter(z => !z.name?.includes('merge'));
     const hasLabel = mergeLabel.length > 0;
 
     console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);

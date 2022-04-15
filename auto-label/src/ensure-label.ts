@@ -3,11 +3,7 @@ import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
-export async function addPullRequestLabel(
-    github: GitHub,
-    request: { owner: string; repo: string },
-    pr: import('@octokit/types/dist-types/generated/Endpoints').PullsGetResponseData,
-) {
+export async function addPullRequestLabel(github: GitHub, request: { owner: string; repo: string }, pr: Awaited<ReturnType<GitHub['pulls']['get']>>['data']) {
     console.log(`pr title: ${pr.title}`);
     const title = pr.title.split(':')[0].trim();
     var labelsForRepository = await github.issues.listLabelsForRepo({ ...request });

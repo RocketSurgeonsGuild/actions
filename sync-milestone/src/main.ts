@@ -31,8 +31,8 @@ async function run(): Promise<void> {
             console.log('ensuring milestones are updated');
             await ensureMilestonesAreCorrect(github, repo).toPromise();
         }
-    } catch (error) {
-        setFailed((error ).message);
+    } catch (error: any) {
+        setFailed(error.message);
     }
 }
 

@@ -23,7 +23,7 @@ async function run(): Promise<void> {
         const data = await mergeData(files);
         debug(`writing ${output}`);
         await writeFile$(resolve(output), dump(data)).toPromise();
-    } catch (error) {
+    } catch (error: any) {
         setFailed(error.message);
     }
 }

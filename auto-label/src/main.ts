@@ -18,8 +18,8 @@ async function run(): Promise<void> {
                 await addPullRequestLabel(github, repo, pr.data);
             }
         }
-    } catch (error) {
-        setFailed((error ).message);
+    } catch (error: any) {
+        setFailed(error.message);
     }
 }
 

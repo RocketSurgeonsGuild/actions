@@ -1,5 +1,5 @@
 import { debug } from '@actions/core';
-import { bindNodeCallback } from 'rxjs';
+import { bindNodeCallback, lastValueFrom } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { readFile } from 'fs';
 import { load } from 'js-yaml';
@@ -18,9 +18,8 @@ export async function mergeData(files: string[]) {
 
     for (const item of files) {
         debug(`reading ${item}`);
-        const content = await readFile$(item)
-            .pipe(map(z => z.toString()))
-            .toPromise();
+
+        const content = await lastValueFrom(readFile$(item).pipe(map(z => z.toString())));
         const data = load(content) as ILabelItem[] | undefined;
         if (!Array.isArray(data)) continue;
         for (const dataItem of data) {

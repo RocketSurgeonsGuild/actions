@@ -5,7 +5,6 @@ import { getOctokit } from '@actions/github';
 import { from as ixFrom, toArray as ixToArray } from 'ix/iterable';
 import * as ix from 'ix/iterable/operators';
 import { parse, rcompare } from 'semver';
-import type { Endpoints } from '@octokit/types/dist-types/generated/Endpoints';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
@@ -28,7 +27,7 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
             const issues = from(remainingOpenMilestones.filter(z => z.open_issues > 0 || z.closed_issues > 0))
                 .pipe(
                     mergeMap(milestone =>
-                        rxifyRequest(github, github.issues.listForRepo, {
+                        rxifyRequest(github, github.rest.issues.listForRepo, {
                             ...request,
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             milestone: milestone.number as any,
@@ -41,7 +40,7 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
                     // eslint-disable-next-line @typescript-eslint/promise-function-async
                     mergeMap(({ issue }) =>
                         from(
-                            github.issues.update({
+                            github.rest.issues.update({
                                 ...request,
                                 issue_number: issue.number,
                                 milestone: currentPendingMilestone.number,
@@ -56,7 +55,7 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
                 .pipe(
                     mergeMap(milestone => {
                         return from(
-                            github.issues.deleteMilestone({
+                            github.rest.issues.deleteMilestone({
                                 ...request,
                                 milestone_number: milestone.number,
                             }),
@@ -70,7 +69,11 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
     );
 }
 
-export function updatePullRequestMilestone(github: GitHub, request: { owner: string; repo: string }, pr: Awaited<ReturnType<GitHub['pulls']['get']>>['data']) {
+export function updatePullRequestMilestone(
+    github: GitHub,
+    request: { owner: string; repo: string },
+    pr: Awaited<ReturnType<GitHub['rest']['pulls']['get']>>['data'],
+) {
     const milestone = getVersionMilestones(github, request).pipe(map(z => z[0]));
 
     return milestone.pipe(
@@ -79,7 +82,7 @@ export function updatePullRequestMilestone(github: GitHub, request: { owner: str
             if (milestone && (!pr.milestone || (pr.milestone && pr.milestone.title !== milestone.title))) {
                 console.log(`need to update milestone on ${pr.title} from ${pr.milestone?.title ?? 'nothing'} to ${milestone.title}`);
                 return from(
-                    github.issues.update({
+                    github.rest.issues.update({
                         ...request,
                         milestone: milestone.number,
                         issue_number: pr.number,
@@ -94,7 +97,7 @@ export function updatePullRequestMilestone(github: GitHub, request: { owner: str
 export async function updatePullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
-    pr: Awaited<ReturnType<GitHub['pulls']['get']>>['data'],
+    pr: Awaited<ReturnType<GitHub['rest']['pulls']['get']>>['data'],
     defaultLabel: string,
 ) {
     const mergeLabel = pr.labels.filter(z => !z.name?.includes('merge'));
@@ -104,7 +107,7 @@ export async function updatePullRequestLabel(
     if (hasLabel) return;
 
     console.log('adding default label', defaultLabel);
-    await github.issues.addLabels({
+    await github.rest.issues.addLabels({
         ...request,
         issue_number: pr.number,
         labels: [defaultLabel],
@@ -112,7 +115,7 @@ export async function updatePullRequestLabel(
 }
 
 function getVersionMilestones(github: GitHub, request: { owner: string; repo: string }) {
-    return rxifyRequest(github, github.issues.listMilestones, {
+    return rxifyRequest(github, github.rest.issues.listMilestones, {
         ...request,
         state: 'open',
     }).pipe(

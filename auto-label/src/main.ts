@@ -9,7 +9,7 @@ async function run(): Promise<void> {
         const github = getOctokit(githubToken, {});
 
         if (payload.pull_request) {
-            const pr = await github.pulls.get({
+            const pr = await github.rest.pulls.get({
                 ...repo,
                 pull_number: payload.pull_request.number,
             });
@@ -18,6 +18,7 @@ async function run(): Promise<void> {
                 await addPullRequestLabel(github, repo, pr.data);
             }
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         setFailed(error.message);
     }

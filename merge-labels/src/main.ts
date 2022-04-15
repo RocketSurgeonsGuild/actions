@@ -4,7 +4,7 @@ import { dump } from 'js-yaml';
 import { writeFile } from 'fs';
 import { resolve } from 'path';
 import { mergeData } from './mergeData';
-import { bindNodeCallback } from 'rxjs';
+import { bindNodeCallback, lastValueFrom } from 'rxjs';
 
 const writeFile$ = bindNodeCallback(writeFile);
 
@@ -22,7 +22,8 @@ async function run(): Promise<void> {
 
         const data = await mergeData(files);
         debug(`writing ${output}`);
-        await writeFile$(resolve(output), dump(data)).toPromise();
+        await lastValueFrom(writeFile$(resolve(output), dump(data)));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         setFailed(error.message);
     }

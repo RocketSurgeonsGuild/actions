@@ -10,7 +10,7 @@ async function run(): Promise<void> {
         const github = getOctokit(githubToken, {});
 
         if (payload.pull_request) {
-            const pr = await github.pulls.get({
+            const pr = await github.rest.pulls.get({
                 ...repo,
                 pull_number: payload.pull_request.number,
             });
@@ -19,7 +19,7 @@ async function run(): Promise<void> {
                 await updatePullRequestMilestone(github, repo, pr.data).toPromise();
                 await updatePullRequestLabel(github, repo, pr.data, defaultLabel);
             } else if (payload.action === 'closed' && !pr.data.merged) {
-                await github.issues.update({
+                await github.rest.issues.update({
                     ...repo,
                     milestone: null,
                     issue_number: pr.data.number,
@@ -31,6 +31,7 @@ async function run(): Promise<void> {
             console.log('ensuring milestones are updated');
             await ensureMilestonesAreCorrect(github, repo).toPromise();
         }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         setFailed(error.message);
     }

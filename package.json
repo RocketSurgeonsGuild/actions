@@ -28,7 +28,7 @@
   "author": "Rocket Surgeons Guild",
   "license": "MIT",
   "dependencies": {
-    "@actions/artifact": "1.0.2",
+    "@actions/artifact": "1.1.0",
     "@actions/cache": "2.0.6",
     "@actions/core": "1.8.2",
     "@actions/exec": "1.1.1",

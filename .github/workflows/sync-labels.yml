@@ -17,23 +17,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3.1.0
 
       - name: Checkout tools repo
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3.1.0
         with:
           repository: RocketSurgeonsGuild/.github
           path: .rsg
 
       - name: merge files
-        uses: RocketSurgeonsGuild/actions/merge-labels@v0.3.1
+        uses: RocketSurgeonsGuild/actions/merge-labels@v0.3.2
         with:
           files: '.rsg/.github/labels.yml,.github/labels.yml'
           output: .github/labels.yml
 
       - name: Run Labeler
         if: success()
-        uses: crazy-max/ghaction-github-labeler@v3.1.1
+        uses: crazy-max/ghaction-github-labeler@v4.1.0
         with:
           yaml-file: .github/labels.yml
           skip-delete: false

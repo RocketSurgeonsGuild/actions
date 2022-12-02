@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3.0.2
+        uses: actions/checkout@v3.1.0
         with:
           fetch-depth: 0
 
@@ -25,18 +25,18 @@ jobs:
           dotnet-version: '3.1.x'
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v0.9.13
+        uses: gittools/actions/gitversion/setup@v0.9.15
         with:
           versionSpec: '5.x'
 
       - name: Install GitReleaseManager
-        uses: gittools/actions/gitreleasemanager/setup@v0.9.13
+        uses: gittools/actions/gitreleasemanager/setup@v0.9.15
         with:
           versionSpec: '0.11.x'
 
       - name: Use GitVersion
         id: gitversion
-        uses: gittools/actions/gitversion/execute@v0.9.13
+        uses: gittools/actions/gitversion/execute@v0.9.15
 
       # Ensure the milestone exists
       - name: Create Milestone
@@ -49,7 +49,7 @@ jobs:
 
       # move any issues to that milestone in the event the release is renamed
       - name: sync milestones
-        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.3.1
+        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.3.2
         with:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.RSG_BOT_TOKEN }}

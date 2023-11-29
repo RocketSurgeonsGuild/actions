@@ -13,89 +13,13 @@ on:
       - reopened
       - closed
       - synchronize
+      - ready_for_review
 
 jobs:
-  # batch-update:
-  #   runs-on: ubuntu-latest
-  #   if: |
-  #     (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
-  #     (github.event.action == 'opened' || github.event.action == 'reopened' || github.event.action == 'synchronize' || github.event.action == 'labeled') &&
-  #     contains(github.event.pull_request.labels.*.name, '.NET')
-  #   steps:
-  #     - name: Dump GitHub context
-  #       env:
-  #         GITHUB_CONTEXT: ${{ toJson(github) }}
-  #       run: echo "$GITHUB_CONTEXT"
-
-  #     - name: Dump job context
-  #       env:
-  #         JOB_CONTEXT: ${{ toJson(job) }}
-  #       run: echo "$JOB_CONTEXT"
-
-  #     - name: Dump steps context
-  #       env:
-  #         STEPS_CONTEXT: ${{ toJson(steps) }}
-  #       run: echo "$STEPS_CONTEXT"
-
-  #     - name: Dump runner context
-  #       env:
-  #         RUNNER_CONTEXT: ${{ toJson(runner) }}
-  #       run: echo "$RUNNER_CONTEXT"
-
-  #     - uses: actions/checkout@v2.4.0
-  #       with:
-  #         ref: ${{ github.head_ref }}
-  #         token: ${{ secrets.RSG_BOT_TOKEN }}
-
-  #     # - run: dotnet tool install -g nukeeper
-
-  #     # - name: Run nukeeper
-  #     #   uses: nick-invision/retry@v2
-  #     #   with:
-  #     #     timeout_minutes: 5
-  #     #     max_attempts: 3
-  #     #     # continue_on_error: true
-  #     #     shell: pwsh
-  #     #     command: |
-  #     #       $title = '${{ github.event.pull_request.title }}'
-  #     #       $prefix = '';
-  #     #       if ($title.StartsWith('Bump Nuke') -or $title.StartsWith('Bump Rocket.Surgery.Nuke'))
-  #     #       {
-  #     #         $prefix = 'Nuke'
-  #     #       }
-  #     #       elseif ($title.StartsWith('Bump Microsoft') -or $title.StartsWith('Bump Rocket.Surgery'))
-  #     #       {
-  #     #         $prefix = ($title.Split(' ')[1].Split('.') | select -First 2) -join '.'
-  #     #       }
-  #     #       else
-  #     #       {
-  #     #         $prefix = ($title.Split(' ')[1].Split('.') | select -First 1) -join '.'
-  #     #       }
-  #     #       if ($prefix)
-  #     #       {
-  #     #         gci *.sln | foreach { rename-item $_.FullName -NewName $_.Name.Replace(".sln", ".sln.tmp") }
-  #     #         nukeeper update -m 100 -i "$prefix" -a 0
-  #     #         gci *.sln.tmp | foreach { rename-item $_.FullName -NewName $_.Name.Replace(".sln.tmp", ".sln") }
-  #     #       }
-
-  #     # - uses: stefanzweifel/git-auto-commit-action@v4
-  #     #   with:
-  #     #     commit_message: Update packages in a batch
-  #     #     file_pattern: '*.props *.targets *.*proj'
-  #     #     push_options: '--force'
-
-  #     - name: GitHub Remove Labels
-  #       if: |
-  #         github.event.action == 'labeled'
-  #       uses: actions-ecosystem/action-remove-labels@v1
-  #       with:
-  #         labels: |
-  #           .NET
-
   comment:
     runs-on: ubuntu-latest
     if: |
-      (github.event.action == 'labeled' || github.event.action == 'opened' || github.event.action == 'reopened')
+      (github.event.action != 'closed')
     steps:
       - name: Dump GitHub context
         env:
@@ -117,25 +41,9 @@ jobs:
           RUNNER_CONTEXT: ${{ toJson(runner) }}
         run: echo "$RUNNER_CONTEXT"
 
-      - name: Dependabot Commenter
-        uses: actions-ecosystem/action-create-comment@v1
-        if: |
-          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
-          &&
-          (
-            contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-          || contains(github.event.pull_request.labels.*.name, 'javascript')
-          || contains(github.event.pull_request.labels.*.name, 'github-actions')
-          )
-        with:
-          github_token: '${{ secrets.RSG_BOT_TOKEN }}'
-          body: '@dependabot squash and merge'
-
       - name: GitHub Automerge
         if: |
-            contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-            || contains(github.event.pull_request.labels.*.name, 'javascript')
-            || contains(github.event.pull_request.labels.*.name, 'github-actions')
+          contains(github.event.pull_request.labels.*.name, ':shipit: merge')
         uses: alexwilson/enable-github-automerge-action@1.0.0
         continue-on-error: true
         with:
@@ -145,7 +53,7 @@ jobs:
   labeler:
     runs-on: ubuntu-latest
     if: |
-      (github.event.action == 'closed' || github.event.action == 'opened' || github.event.action == 'reopened')
+      (github.event.action != 'labeled')
     steps:
       - name: Dump GitHub context
         env:
@@ -167,78 +75,14 @@ jobs:
           RUNNER_CONTEXT: ${{ toJson(runner) }}
         run: echo "$RUNNER_CONTEXT"
 
-      - name: GitHub Add Labels
-        uses: actions-ecosystem/action-add-labels@v1
+      - name: GitHub Private Dependency Labels
         if: |
-          (github.event.action == 'opened' || github.event.action == 'reopened') &&
-          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
-          (
-               startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper')
-            || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
-            || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
-            || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')
-            || startsWith(github.event.pull_request.title, 'Bump Bogus')
-            || startsWith(github.event.pull_request.title, 'Bump coverlet')
-            || startsWith(github.event.pull_request.title, 'Bump FakeItEasy')
-            || startsWith(github.event.pull_request.title, 'Bump FluentAssertions')
-            || startsWith(github.event.pull_request.title, 'Bump xunit')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.NET.Test.Sdk')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.SourceLink')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.Extensions')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.AspNetCore')
-            || startsWith(github.event.pull_request.title, 'Bump System.Collections.Immutable')
-            || startsWith(github.event.pull_request.title, 'Bump System.Interactive')
-            || startsWith(github.event.pull_request.title, 'Bump System.Reactive')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Extensions.Testing')
-            || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
-            || startsWith(github.event.pull_request.title, 'Bump Humanizer')
-          )
+          (github.event.action != 'closed') &&
+          (github.event.pull_request.user.login == 'renovate[bot]' && contains(github.event.pull_request.labels.*.name, ':truck: private-dependencies'))
+        uses: actions-ecosystem/action-add-labels@v1
         with:
-          github_token: '${{ secrets.RSG_BOT_TOKEN }}'
           labels: |
             :shipit: merge
-
-      - name: GitHub Private Dependency Labels
-        uses: actions-ecosystem/action-add-labels@v1
-        if: |
-          (github.event.action == 'opened' || github.event.action == 'reopened') &&
-          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]') &&
-          (
-               startsWith(github.event.pull_request.title, 'Bump JetBrains.ReSharper')
-            || startsWith(github.event.pull_request.title, 'Bump ReportGenerator')
-            || startsWith(github.event.pull_request.title, 'Bump Nuke.Common')
-            || startsWith(github.event.pull_request.title, 'Bump GitVersion.Tool')
-            || startsWith(github.event.pull_request.title, 'Bump Bogus')
-            || startsWith(github.event.pull_request.title, 'Bump coverlet')
-            || startsWith(github.event.pull_request.title, 'Bump FakeItEasy')
-            || startsWith(github.event.pull_request.title, 'Bump FluentAssertions')
-            || startsWith(github.event.pull_request.title, 'Bump xunit')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.NET.Test.Sdk')
-            || startsWith(github.event.pull_request.title, 'Bump Microsoft.SourceLink')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Nuke')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.MSBuild')
-            || startsWith(github.event.pull_request.title, 'Bump Rocket.Surgery.Extensions.Testing')
-            || startsWith(github.event.pull_request.title, 'Bump Roslynator.Analyzers')
-          )
-        with:
-          github_token: '${{ secrets.RSG_BOT_TOKEN }}'
-          labels: |
-            :truck: private-dependencies
-
-      - name: GitHub Private Dependency Labels
-        if: |
-          (github.event.pull_request.user.login == 'dependabot[bot]' || github.event.pull_request.user.login == 'dependabot-preview[bot]')
-          &&
-          (
-             contains(github.event.pull_request.labels.*.name, 'javascript')
-          || contains(github.event.pull_request.labels.*.name, 'github-actions')
-          )
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          labels: |
-            :truck: private-dependencies
 
       - name: GitHub Remove Labels
         if: |
@@ -247,6 +91,3 @@ jobs:
         with:
           labels: |
             :shipit: merge
-            github-actions
-            javascript
-            .NET

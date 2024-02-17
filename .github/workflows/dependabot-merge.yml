@@ -44,7 +44,7 @@ jobs:
       - name: GitHub Automerge
         if: |
           contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-        uses: alexwilson/enable-github-automerge-action@1.0.0
+        uses: alexwilson/enable-github-automerge-action@2.0.0
         continue-on-error: true
         with:
           github-token: '${{ secrets.RSG_BOT_TOKEN }}'

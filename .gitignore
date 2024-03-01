@@ -103,3 +103,5 @@ lib/**/*
 !*rc.js
 !**/dist/*.js
 scratch.*
+
+*.received.*

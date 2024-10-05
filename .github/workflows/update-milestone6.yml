@@ -26,14 +26,14 @@ jobs:
         if: ${{ github.event.action == 'opened' }}
         uses: gittools/actions/gitversion/setup@v3.0.0
         with:
-          versionSpec: '6.0.0-beta.7'
+          versionSpec: '6.x'
           includePrerelease: true
 
       - name: Install GitReleaseManager
         if: ${{ github.event.action == 'opened' }}
         uses: gittools/actions/gitreleasemanager/setup@v3.0.0
         with:
-          versionSpec: '0.16.x'
+          versionSpec: '0.18.x'
 
       - name: Use GitVersion
         if: ${{ github.event.action == 'opened' }}

@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
 
       - name: sync milestones
-        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.3.11
+        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.3.12
         with:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.GITHUB_TOKEN }}

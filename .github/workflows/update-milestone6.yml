@@ -22,6 +22,8 @@ jobs:
       - name: Fetch all history for all tags and branches
         run: git fetch --prune
 
+      - uses: actions/setup-dotnet@v4
+
       - name: Install GitVersion
         if: ${{ github.event.action == 'opened' }}
         uses: gittools/actions/gitversion/setup@v3.0.0

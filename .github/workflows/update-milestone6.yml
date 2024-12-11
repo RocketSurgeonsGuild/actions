@@ -28,14 +28,15 @@ jobs:
         if: ${{ github.event.action == 'opened' }}
         uses: gittools/actions/gitversion/setup@v3.1.1
         with:
-          versionSpec: '6.x'
-          includePrerelease: true
+          # renovate: datasource=github-releases depName=gittools/gitversion
+          versionSpec: '6.1.0'
 
       - name: Install GitReleaseManager
         if: ${{ github.event.action == 'opened' }}
         uses: gittools/actions/gitreleasemanager/setup@v3.1.1
         with:
-          versionSpec: '0.18.x'
+          # renovate: datasource=github-releases depName=gittools/gitreleasemanager
+          versionSpec: '0.18.0'
 
       - name: Use GitVersion
         if: ${{ github.event.action == 'opened' }}

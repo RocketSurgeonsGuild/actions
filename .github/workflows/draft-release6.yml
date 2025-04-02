@@ -29,13 +29,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
 
       - name: Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.1.11
+        uses: gittools/actions/gitversion/setup@v3.2.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitversion
           versionSpec: '6.1.0'
 
       - name: Install GitReleaseManager
-        uses: gittools/actions/gitreleasemanager/setup@v3.1.11
+        uses: gittools/actions/gitreleasemanager/setup@v3.2.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitreleasemanager
           versionSpec: '0.18.0'

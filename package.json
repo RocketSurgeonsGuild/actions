@@ -39,7 +39,7 @@
     "@actions/tool-cache": "2.0.2",
     "lodash": "4.17.21",
     "lodash-es": "4.17.21",
-    "semver": "7.7.1"
+    "semver": "7.7.2"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",

@@ -55,7 +55,7 @@
     "eslint-plugin-eslint-comments": "3.2.0",
     "eslint-plugin-import": "2.32.0",
     "eslint-plugin-jest": "28.14.0",
-    "eslint-plugin-prettier": "5.5.1",
+    "eslint-plugin-prettier": "5.5.3",
     "eslint-rule-documentation": "1.0.23",
     "husky": "9.1.7",
     "ix": "7.0.0",

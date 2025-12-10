@@ -31,7 +31,7 @@ jobs:
         uses: gittools/actions/gitreleasemanager/setup@v4.2.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitreleasemanager
-          versionSpec: '0.18.0'
+          versionSpec: 0.20.0
 
       - name: Use GitVersion
         id: gitversion

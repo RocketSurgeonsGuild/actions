@@ -36,7 +36,7 @@
     "@actions/glob": "0.5.1",
     "@actions/http-client": "4.0.0",
     "@actions/io": "3.0.2",
-    "@actions/tool-cache": "3.0.1",
+    "@actions/tool-cache": "4.0.0",
     "lodash": "4.17.23",
     "lodash-es": "4.17.23",
     "semver": "7.7.3"

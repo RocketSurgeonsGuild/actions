@@ -32,7 +32,7 @@ jobs:
         uses: gittools/actions/gitversion/setup@v4.2.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitversion
-          versionSpec: '6.1.0'
+          versionSpec: 6.6.0
 
       - name: Install GitReleaseManager
         uses: gittools/actions/gitreleasemanager/setup@v4.2.0

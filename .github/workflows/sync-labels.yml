@@ -4,7 +4,7 @@ on:
   workflow_call:
   push:
     branches:
-      - master
+      - main
     paths:
       - .github/workflows/sync-labels.yml
       - merge-labels/**/*.*

@@ -45,10 +45,11 @@ jobs:
         run: echo "$RUNNER_CONTEXT"
 
       - name: GitHub Automerge
-        uses: waheedahmed/enqueue-pullrequest@v0.0.5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          label: ":shipit: merge"
+        if: "${{ contains(github.event.pull_request.labels.*.name, ':shipit: merge') }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
   labeler:
     runs-on: ubuntu-latest
     if: |

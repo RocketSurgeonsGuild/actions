@@ -21,7 +21,7 @@ jobs:
     if: |
       (github.event.action != 'closed')
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
     steps:
       - name: Dump GitHub context
@@ -45,24 +45,10 @@ jobs:
         run: echo "$RUNNER_CONTEXT"
 
       - name: GitHub Automerge
-        if: |
-          contains(github.event.pull_request.labels.*.name, ':shipit: merge')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NODE_ID: ${{ github.event.pull_request.node_id }}
-        run: |
-          gh api graphql -f query='
-            mutation($prId: ID!) {
-              enqueuePullRequest(input: {pullRequestId: $prId}) {
-                mergeQueueEntry {
-                  id
-                  position
-                  estimatedTimeToMerge
-                }
-              }
-            }
-          ' -f prId="$PR_NODE_ID"
+        uses: waheedahmed/enqueue-pullrequest@v0.0.5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          label: ":shipit: merge"
   labeler:
     runs-on: ubuntu-latest
     if: |

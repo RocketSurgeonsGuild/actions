@@ -6,7 +6,7 @@ runs:
     - name: 🔨 Use .NET Core 2.1 SDK
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: '2.1.x'
+        dotnet-version: '2.2.402'
     - name: 🔨 Use .NET Core 3.1 SDK
       uses: actions/setup-dotnet@v6
       with:

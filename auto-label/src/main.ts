@@ -8,6 +8,11 @@ async function run(): Promise<void> {
         const githubToken: string = getInput('github-token', { required: true });
         const github = getOctokit(githubToken, {});
 
+        const labelMapInput = getInput('label-map');
+        const labelMap: Record<string, string> | undefined = labelMapInput
+            ? JSON.parse(labelMapInput)
+            : undefined;
+
         if (payload.pull_request) {
             const pr = await github.rest.pulls.get({
                 ...repo,
@@ -15,7 +20,7 @@ async function run(): Promise<void> {
             });
 
             if (payload.action === 'opened' || payload.action === 'reopened') {
-                await addPullRequestLabel(github, repo, pr.data);
+                await addPullRequestLabel(github, repo, pr.data, labelMap);
             }
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

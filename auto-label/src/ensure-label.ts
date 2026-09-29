@@ -7,20 +7,39 @@ export async function addPullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
     pr: Awaited<ReturnType<GitHub['rest']['pulls']['get']>>['data'],
+    labelMap?: Record<string, string>,
 ) {
     console.log(`pr title: ${pr.title}`);
     const title = pr.title.split(':')[0].trim();
-    var labelsForRepository = await github.rest.issues.listLabelsForRepo({ ...request });
-    const titleLabel = labelsForRepository.data.filter(z => z.name.includes(title)).map(x => x.name);
-    const hasLabel = titleLabel.length > 0;
 
-    console.log(`label ${hasLabel ? 'found' : 'not found'}`, pr.labels);
-    if (!hasLabel) return;
+    let labelsToApply: string[];
 
-    console.log('adding title label', titleLabel);
+    if (labelMap) {
+        const mappedLabel = labelMap[title];
+        if (!mappedLabel) {
+            console.log(`label not found in map for prefix: ${title}`);
+            return;
+        }
+        const repoLabels = await github.rest.issues.listLabelsForRepo({ ...request });
+        const exists = repoLabels.data.some(z => z.name === mappedLabel);
+        if (!exists) {
+            console.log(`mapped label '${mappedLabel}' does not exist in repository`);
+            return;
+        }
+        labelsToApply = [mappedLabel];
+    } else {
+        const repoLabels = await github.rest.issues.listLabelsForRepo({ ...request });
+        labelsToApply = repoLabels.data.filter(z => z.name.includes(title)).map(x => x.name);
+        if (labelsToApply.length === 0) {
+            console.log('label not found', pr.labels);
+            return;
+        }
+    }
+
+    console.log('adding title label', labelsToApply);
     await github.rest.issues.addLabels({
         ...request,
         issue_number: pr.number,
-        labels: titleLabel,
+        labels: labelsToApply,
     });
 }

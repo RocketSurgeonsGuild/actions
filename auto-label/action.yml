@@ -4,6 +4,10 @@ inputs:
   github-token:
     description: 'Token for the repository. Can be passed in using {{ secrets.GITHUB_TOKEN }}'
     required: true
+  label-map:
+    description: 'Optional JSON object mapping PR title prefixes to repository label names. Example: {"feat":"feature","fix":"bug"}'
+    required: false
+    default: ''
 runs:
   using: 'node12'
   main: 'dist/index.js'

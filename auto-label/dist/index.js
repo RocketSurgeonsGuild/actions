@@ -59676,11 +59676,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getTitlePrefix = getTitlePrefix;
 exports.addPullRequestLabel = addPullRequestLabel;
+/**
+ * Extracts the type prefix from a conventional-style PR title.
+ * Supports `type: subject`, `type(scope): subject`, and the `!` breaking-change marker.
+ */
+function getTitlePrefix(title) {
+    return title
+        .split(':')[0]
+        .trim()
+        .replace(/\s*(\([^)]*\))?\s*!?$/, '');
+}
 function addPullRequestLabel(github, request, pr, labelMap) {
     return __awaiter(this, void 0, void 0, function* () {
         console.log(`pr title: ${pr.title}`);
-        const title = pr.title.split(':')[0].trim();
+        const title = getTitlePrefix(pr.title);
         let labelsToApply;
         if (labelMap) {
             const mappedLabel = labelMap[title];

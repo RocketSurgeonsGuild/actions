@@ -3,6 +3,17 @@ import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;
 
+/**
+ * Extracts the type prefix from a conventional-style PR title.
+ * Supports `type: subject`, `type(scope): subject`, and the `!` breaking-change marker.
+ */
+export function getTitlePrefix(title: string): string {
+    return title
+        .split(':')[0]
+        .trim()
+        .replace(/\s*(\([^)]*\))?\s*!?$/, '');
+}
+
 export async function addPullRequestLabel(
     github: GitHub,
     request: { owner: string; repo: string },
@@ -10,7 +21,7 @@ export async function addPullRequestLabel(
     labelMap?: Record<string, string>,
 ) {
     console.log(`pr title: ${pr.title}`);
-    const title = pr.title.split(':')[0].trim();
+    const title = getTitlePrefix(pr.title);
 
     let labelsToApply: string[];
 

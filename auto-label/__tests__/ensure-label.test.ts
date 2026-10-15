@@ -1,4 +1,4 @@
-import { addPullRequestLabel } from '../src/ensure-label';
+import { addPullRequestLabel, getTitlePrefix } from '../src/ensure-label';
 
 const mockListLabelsForRepo = jest.fn();
 const mockAddLabels = jest.fn();
@@ -28,7 +28,29 @@ beforeEach(() => {
     mockAddLabels.mockResolvedValue({});
 });
 
+describe('getTitlePrefix', () => {
+    test.each([
+        ['feat: add thing', 'feat'],
+        ['task(270): retarget to .NET 11 RC2', 'task'],
+        ['feat(api)!: breaking change', 'feat'],
+        ['fix!: breaking fix', 'fix'],
+        ['feat (scope): spaced scope', 'feat'],
+        ['  chore :  padded', 'chore'],
+    ])('%s -> %s', (title, expected) => {
+        expect(getTitlePrefix(title)).toBe(expected);
+    });
+});
+
 describe('without labelMap (existing behavior)', () => {
+    test('applies labels for a scoped prefix', async () => {
+        await addPullRequestLabel(mockGithub, mockRepo, makePR('feat(270): add thing'));
+        expect(mockAddLabels).toHaveBeenCalledWith({
+            ...mockRepo,
+            issue_number: 1,
+            labels: ['feature', 'feat'],
+        });
+    });
+
     test('applies all repo labels that contain the prefix as a substring', async () => {
         await addPullRequestLabel(mockGithub, mockRepo, makePR('feat: add thing'));
         // Both 'feature' and 'feat' contain the substring 'feat'
@@ -50,6 +72,15 @@ describe('with labelMap', () => {
 
     test('applies mapped label when prefix matches and label exists in repo', async () => {
         await addPullRequestLabel(mockGithub, mockRepo, makePR('feat: add thing'), labelMap);
+        expect(mockAddLabels).toHaveBeenCalledWith({
+            ...mockRepo,
+            issue_number: 1,
+            labels: ['feature'],
+        });
+    });
+
+    test('applies mapped label for a scoped prefix', async () => {
+        await addPullRequestLabel(mockGithub, mockRepo, makePR('feat(270): add thing'), labelMap);
         expect(mockAddLabels).toHaveBeenCalledWith({
             ...mockRepo,
             issue_number: 1,

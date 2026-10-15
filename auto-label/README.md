@@ -13,7 +13,7 @@ Runs on `pull_request` `opened` and `reopened` events.
 
 ## Behavior
 
-The PR title is split on the first `:` and the text before it (trimmed) becomes the **prefix**.
+The PR title is split on the first `:` and the text before it (trimmed) becomes the **prefix**. A conventional-commit scope and breaking-change marker are stripped, so `task(270): retarget`, `feat(api)!: drop v1`, and `fix!: thing` resolve to `task`, `feat`, and `fix`.
 
 - **With `label-map` set:** the prefix is looked up in the map.
   - No entry for the prefix -> no label applied, action logs and exits.

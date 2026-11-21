@@ -105,3 +105,6 @@ lib/**/*
 scratch.*
 
 *.received.*
+
+# release-milestones runs its source directly through actions/github-script (no ncc build)
+!release-milestones/index.js

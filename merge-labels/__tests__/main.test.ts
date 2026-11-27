@@ -1,3 +1,6 @@
+jest.mock('@actions/core', () => ({ debug: jest.fn() }), { virtual: true });
+
+
 import { mergeData } from '../src/mergeData';
 import { join } from 'path';
 

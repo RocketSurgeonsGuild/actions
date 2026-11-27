@@ -20,6 +20,8 @@ export async function mergeData(files: string[]) {
         debug(`reading ${item}`);
 
         const content = await lastValueFrom(readFile$(item).pipe(map(z => z.toString())));
+        // js-yaml 5 throws on an empty document instead of returning undefined
+        if (!content.trim()) continue;
         const data = load(content) as ILabelItem[] | undefined;
         if (!Array.isArray(data)) continue;
         for (const dataItem of data) {

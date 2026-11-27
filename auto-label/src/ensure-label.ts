@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+ 
 import { getOctokit } from '@actions/github';
 
 type GitHub = ReturnType<typeof getOctokit>;

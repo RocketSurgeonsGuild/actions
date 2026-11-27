@@ -37,7 +37,7 @@ export function ensureMilestonesAreCorrect(github: GitHub, request: { owner: str
                     tap(({ issue, milestone }) => {
                         console.log(`Moving issue '${issue.title}' from ${milestone.title} to ${currentPendingMilestone.title}`);
                     }),
-                    // eslint-disable-next-line @typescript-eslint/promise-function-async
+                     
                     mergeMap(({ issue }) =>
                         from(
                             github.rest.issues.update({

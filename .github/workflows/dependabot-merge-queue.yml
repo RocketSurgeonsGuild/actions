@@ -44,12 +44,24 @@ jobs:
           RUNNER_CONTEXT: ${{ toJson(runner) }}
         run: echo "$RUNNER_CONTEXT"
 
+      # GITHUB_TOKEN cannot enable auto-merge here (contents: read, and merges it queues
+      # would not trigger merge_group workflows), so use the bot token instead.
+      # Skips drafts and PRs that already have auto-merge on (e.g. enabled by Renovate).
+      # --squash is only a fallback: on branches with a merge queue the queue sets the strategy.
       - name: GitHub Automerge
-        if: "${{ contains(github.event.pull_request.labels.*.name, ':shipit: merge') }}"
+        if: |
+          contains(github.event.pull_request.labels.*.name, ':shipit: merge') &&
+          !github.event.pull_request.draft &&
+          github.event.pull_request.auto_merge == null
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RSG_BOT_TOKEN || github.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-        run: gh pr merge --auto --squash "$PR_URL"
+        run: |
+          if [ "$(gh pr view "$PR_URL" --json autoMergeRequest --jq '.autoMergeRequest != null')" = "true" ]; then
+            echo "Auto-merge is already enabled for $PR_URL"
+            exit 0
+          fi
+          gh pr merge --auto --squash "$PR_URL"
   labeler:
     runs-on: ubuntu-latest
     if: |

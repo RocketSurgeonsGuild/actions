@@ -1,0 +1,62 @@
+name: 'Release Milestones'
+description: 'Keeps version milestones and the draft release in step with merged pull requests, and closes a milestone with what shipped once it is released'
+inputs:
+  mode:
+    description: "'pull-request' files the event's pull request under the pending milestone; 'sync' reconciles every milestone and the draft release"
+    required: true
+  github-token:
+    description: 'Token with issues and pull-requests write access (and contents write for the draft release in sync mode)'
+    required: true
+  default-label:
+    description: 'Label added to merged pull requests that have no label (other than merge labels); empty to skip'
+    required: false
+    default: ':sparkles: mysterious'
+  versioning:
+    description: "'semver' bumps the latest release by the merged pull requests' labels; 'calver' uses <year>.<month>.<releases this month>"
+    required: false
+    default: 'semver'
+  major-labels:
+    description: 'Comma-separated labels that bump the major version (the minor version while the major version is 0)'
+    required: false
+    default: ':boom: breaking change'
+  minor-labels:
+    description: 'Comma-separated labels that bump the minor version'
+    required: false
+    default: ':rocket: feature,:fire: enhancement'
+  initial-version:
+    description: 'The version to use when the repository has no stable release yet'
+    required: false
+    default: 'v0.1.0'
+  release-tag:
+    description: 'In sync mode, a release that was just published; its milestone is finalized even if it is not the newest'
+    required: false
+    default: ''
+  draft-release:
+    description: 'In sync mode, keep a draft release for the pending version with regenerated notes'
+    required: false
+    default: 'true'
+  dry-run:
+    description: 'Log the changes without making them'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Reconcile milestones
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      env:
+        RM_SCRIPT: ${{ github.action_path }}/index.js
+        RM_MODE: ${{ inputs.mode }}
+        RM_DEFAULT_LABEL: ${{ inputs.default-label }}
+        RM_VERSIONING: ${{ inputs.versioning }}
+        RM_MAJOR_LABELS: ${{ inputs.major-labels }}
+        RM_MINOR_LABELS: ${{ inputs.minor-labels }}
+        RM_INITIAL_VERSION: ${{ inputs.initial-version }}
+        RM_RELEASE_TAG: ${{ inputs.release-tag }}
+        RM_DRAFT_RELEASE: ${{ inputs.draft-release }}
+        RM_DRY_RUN: ${{ inputs.dry-run }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const run = require(process.env.RM_SCRIPT);
+          await run({ github, context, core });

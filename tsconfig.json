@@ -7,6 +7,7 @@
     "noImplicitAny": true,
     "esModuleInterop": true,
     "noEmit": true,
+    "types": ["node", "jest"],
     "skipDefaultLibCheck": true,
     "skipLibCheck": true
   },

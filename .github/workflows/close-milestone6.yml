@@ -25,13 +25,13 @@ jobs:
         uses: gittools/actions/gitversion/setup@v5.0.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitversion
-          versionSpec: 6.8.2
+          versionSpec: 7.0.1
 
       - name: Install GitReleaseManager
         uses: gittools/actions/gitreleasemanager/setup@v5.0.0
         with:
           # renovate: datasource=github-releases depName=gittools/gitreleasemanager
-          versionSpec: 0.20.0
+          versionSpec: '0.18.0'
 
       - name: Use GitVersion
         id: gitversion
@@ -48,7 +48,7 @@ jobs:
 
       # move any issues to that milestone in the event the release is renamed
       - name: sync milestones
-        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.4.0
+        uses: RocketSurgeonsGuild/actions/sync-milestone@v0.3.19
         with:
           default-label: ':sparkles: mysterious'
           github-token: ${{ secrets.RSG_BOT_TOKEN }}
